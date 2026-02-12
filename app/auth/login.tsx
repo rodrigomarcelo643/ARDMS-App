@@ -22,7 +22,9 @@ import {
 import Toast from "react-native-toast-message";
 
 const LoginScreen = () => {
-
+  /**
+    App URL base to backend ( RestApi ready )
+  **/
   const APP_URL = `${API_BASE_URL}/api/login.php`;
 
   const [loginData, setLoginData] = useState({
