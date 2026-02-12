@@ -76,12 +76,14 @@ const OTPVerification = () => {
     }
   }, [state.resendCountdown, state.canResend]);
 
+ // Time Formattimg function 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
+    // Validating Password Function 
   const validatePassword = (password: string) => {
     const validations = {
       hasUpperCase: /[A-Z]/.test(password),
@@ -96,7 +98,8 @@ const OTPVerification = () => {
       allValid: Object.values(validations).every(v => v),
     });
   };
-
+    
+  // Handle Pasting OTP function
   const handleOtpPaste = (text: string) => {
     // Filter only digits and take first 6
     const digits = text.replace(/\D/g, '').slice(0, 6).split('');
@@ -119,7 +122,7 @@ const OTPVerification = () => {
       inputs.current[5]?.focus();
     }
   };
-
+// Handle Change OTP function 
   const handleOtpChange = (value: string, index: number) => {
     if (!/^\d*$/.test(value)) return; // Only allow numbers
     
@@ -138,16 +141,18 @@ const OTPVerification = () => {
     }
   };
 
+// Handle Key Press Function 
   const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
     if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
       inputs.current[index - 1]?.focus();
     }
   };
-
+// Handle Password Change Function 
   const handlePasswordChange = (field: string, value: string) => {
     setPasswords(prev => ({ ...prev, [field]: value }));
   };
-
+    
+// Handle Focusing on Passwod field ( eg.. New password and Confirm Password ) 
   const handleFocus = (field: string) => {
     if (field === "new_password") {
       setState(prev => ({ ...prev, isNewPasswordFocused: true }));
@@ -166,6 +171,7 @@ const OTPVerification = () => {
     }
   };
 
+// Handle Blurring
   const handleBlur = (field: string) => {
     if (field === "new_password") {
       setState(prev => ({ ...prev, isNewPasswordFocused: false }));
@@ -187,6 +193,10 @@ const OTPVerification = () => {
       }
     }
   };
+
+/**
+Resending OTP function
+**/
 
   const resendOTP = async () => {
     setState(prev => ({ ...prev, loading: true }));
@@ -251,6 +261,8 @@ const OTPVerification = () => {
       setState(prev => ({ ...prev, loading: false }));
     }
   };
+
+// Validation on OTP entered on each digit Form
 
   const validateForm = () => {
     if (otp.some(digit => !digit)) {
@@ -336,6 +348,7 @@ const OTPVerification = () => {
     return true;
   };
 
+// Submitting to validate whether the OTP entered is correct or wrong 
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -446,6 +459,7 @@ const OTPVerification = () => {
     zIndex: 1,
   };
 
+// Style: Confirm Password Label Styling 
   const confirmPasswordLabelStyle = {
     position: 'absolute' as 'absolute',
     left: 35,
