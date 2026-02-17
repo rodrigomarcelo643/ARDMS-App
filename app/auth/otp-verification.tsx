@@ -439,6 +439,7 @@ Resending OTP function
     }
   };
 
+// New Password Label Style
   const newPasswordLabelStyle = {
     position: 'absolute' as 'absolute',
     left: 35,
