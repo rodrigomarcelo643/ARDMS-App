@@ -255,7 +255,7 @@ const LoginScreen = () => {
               joinDate: result.user.joinDate || "Member since 2023",
               policy_accepted: result.user.policy_accepted || 1,
             };
-
+            // Login Data ( Stored with the Context )
             await login(userData);
 
             Toast.show({
@@ -270,11 +270,12 @@ const LoginScreen = () => {
               loading: false,
               showLoginLoading: false,
             }));
-
+            // Redirect to Home Page of the App
             router.replace("/home");
           }
         }
       } else {
+        // Fallback Error 
         Toast.show({
           type: "error",
           text1: "Login Failed",
@@ -288,6 +289,7 @@ const LoginScreen = () => {
         }));
       }
     } catch (error: any) {
+      // Catch Errors if non of it satisfied above
       Toast.show({
         type: "error",
         text1: "Request Error",
@@ -325,6 +327,7 @@ const LoginScreen = () => {
     ],
   };
 
+  // text style animation 
   const textStyle = {
     opacity: textAnim,
     transform: [
