@@ -167,7 +167,8 @@ export const messageService = {
 
   // Send a new message
   sendMessage: async (
-    message: SendMessageRequest
+    message: SendMessageRequest,
+    senderName?: string
   ): Promise<Message> => {
     const response = await axios.post(
       `${API_BASE}/send_message.php`,
@@ -193,18 +194,24 @@ export const messageService = {
       throw new Error(data.error || 'Failed to send message');
     }
     
-    // Send push notification
+    // Send push notification with actual sender name
     try {
-      console.log(' Sending push notification...');
+      console.log('🔔 Sending push notification...');
+      console.log('Sender name being sent:', senderName);
+      
+      if (!senderName) {
+        console.warn('⚠️ No sender name provided, will show as "Someone"');
+      }
+      
       const pushResponse = await axios.post(`${API_BASE_URL}/api/send_push_notification.php`, {
         sender_id: message.senderId,
         receiver_id: message.receiverId,
         message: message.text,
-        sender_name: data.message.sender_name || 'Someone',
+        sender_name: senderName || 'Someone',
       });
-      console.log('Push notification sent:', pushResponse.data);
+      console.log('✅ Push notification sent:', pushResponse.data);
     } catch (error: any) {
-      console.error('Failed to send push notification:', error.response?.data || error.message);
+      console.error('❌ Failed to send push notification:', error.response?.data || error.message);
     }
     
     return {
