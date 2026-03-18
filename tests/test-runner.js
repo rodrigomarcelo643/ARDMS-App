@@ -16,6 +16,7 @@ function analyzeRealFiles() {
     { path: 'app/screens/messages.tsx', category: 'Messaging' },
     { path: 'app/chat/[id].tsx', category: 'Chat' },
     { path: 'app/(tabs)/home.tsx', category: 'Home Screen' },
+    { path: 'app/(tabs)/folder.tsx', category: 'Blur Check' },
     { path: 'app/(tabs)/profile.tsx', category: 'Profile' },
     { path: 'services/messageService.ts', category: 'Services' },
     { path: 'services/notificationService.ts', category: 'Services' },
