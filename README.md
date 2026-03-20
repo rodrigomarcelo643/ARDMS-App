@@ -295,6 +295,5 @@ MedSIS-App/
 
 This project uses co-authorship for collaborative commits. To add a co-author:
 
-```bash
 Co-authored-by: SentinelPH <sentinelph657@gmail.com>"
-```
+
