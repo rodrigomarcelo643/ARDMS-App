@@ -231,6 +231,7 @@ MedSIS-App/
 - **Image Handling**: Expo ImagePicker with fallback system
 - **Time Management**: Philippine timezone integration
 - **Data Loading**: Lazy loading and pagination support
+- **Image Analysis**: ML-powered blur detection and quality assessment
 - **Configuration**: Centralized API configuration management
 - **Testing**: Comprehensive test suite with constants-based configuration
 
@@ -248,6 +249,13 @@ MedSIS-App/
 - 👤 Advanced profile management with live avatar fetching and SWU head fallback
 - 📅 Accurate calendar system with Philippine timezone support
 - 🔔 Smart notifications with feedback separation and time conversion
+### Document Management & Quality Control
+
+- 🖼️ **Image Blur Analysis** - ML-powered quality check before upload
+  - Laplacian variance blur detection (threshold: ~100)
+  - Quality scoring system (0-100%)
+  - Auto-validation with visual progress indicators
+  - Prevents upload of blurry documents
 - 📁 Enhanced document management with image viewer improvements
 - 📢 Announcements with lazy loading (10 items per batch) and back-to-top navigation
 
@@ -268,6 +276,7 @@ MedSIS-App/
 
 ### Core Features
 
+- ✅ ML-powered image blur analysis for document quality control
 - ✅ Student requirement upload system with document management
 - ✅ View evaluation results history and evaluator e-signatures
 - ✅ Secure authentication with OTP verification
