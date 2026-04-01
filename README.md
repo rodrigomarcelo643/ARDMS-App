@@ -1,4 +1,4 @@
-# MedSIS App - Medical Student Information System 📱
+# MedSIS App - Medical Student Information System 
 
 <!-- Version Badges -->
 <div align="center" style="margin-bottom: 30px;">
