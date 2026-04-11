@@ -62,6 +62,41 @@ export interface EvaluationResponse {
   error?: string;
 }
 
+// Grade upload types
+export interface GradeUploadPermission {
+  [yearLevelId: number]: {
+    is_enabled: boolean;
+    name: string;
+  };
+}
+
+export interface GradeUploadPermissionResponse {
+  success: boolean;
+  permissions: GradeUploadPermission;
+  message?: string;
+}
+
+export interface GradeImage {
+  id: number;
+  student_id: number;
+  year_level_id: number;
+  year_level_name: string | null;
+  file_name: string;
+  file_path: string;
+  file_type: string;
+  file_size: string;
+  image_data: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GradeImagesResponse {
+  success: boolean;
+  images: GradeImage[];
+  count: number;
+  message?: string;
+}
+
 // Folder types
 export interface UploadedFile {
   id: string;
@@ -112,7 +147,7 @@ export interface QuickLinkCardProps {
 
 export interface WelcomeHeaderProps {
   user: any;
-  onProfilePress: () => void;
+  onProfilePress?: () => void;
 }
 
 export interface HomeQuickLink {
@@ -182,11 +217,26 @@ export interface InfoItemProps {
   keyboardType?: any;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   multiline?: boolean;
+  theme?: string;
+  borderColor?: string;
+  mutedColor?: string;
+  textColor?: string;
 }
 
 export interface NationalityInputProps {
   value?: string;
   label: string;
+  isEditing?: boolean;
+  theme?: string;
+  borderColor?: string;
+  mutedColor?: string;
+  textColor?: string;
+  cardColor?: string;
+  nationalityType?: string;
+  onNationalityTypeChange?: (type: string) => void;
+  customNationalityRef?: React.RefObject<any>;
+  foreignerSpecify?: string;
+  onValueChange?: (field: keyof EditData, text: string) => void;
 }
 
 export interface SectionProps {
@@ -195,4 +245,6 @@ export interface SectionProps {
   children: React.ReactNode;
   isExpanded: boolean;
   onToggle: () => void;
+  cardColor?: string;
+  textColor?: string;
 }

@@ -7,7 +7,6 @@ import {
   Calendar,
   GraduationCap,
   Microscope,
-  Send,
   Sparkles,
   Upload,
   X,
@@ -17,16 +16,20 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { Message, QuickLink } from '@/@types/tabs';
+
+// Import modular components
+import { AIHeader } from "@/components/ai-assistant/AIHeader";
+import { AIQuickLinks } from "@/components/ai-assistant/AIQuickLinks";
+import { AIMessageItem } from "@/components/ai-assistant/AIMessageItem";
+import { AIInputArea } from "@/components/ai-assistant/AIInputArea";
 
 export default function AIAssistant() {
   const { user } = useAuth();
@@ -36,6 +39,7 @@ export default function AIAssistant() {
   const cardColor = useThemeColor({}, 'card');
   const mutedColor = useThemeColor({}, 'muted');
   const loadColor = useThemeColor({}, 'loaderCard');
+  const borderColor = useThemeColor({}, 'border');
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -67,63 +71,14 @@ export default function AIAssistant() {
     };
   }, []);
 
-  // Quick links data with AI Mentor for medical students
+  // Quick links data
   const quickLinks: QuickLink[] = [
-    {
-      id: "1",
-      title: "AI Mentor",
-      description: "Personalized medical study guidance",
-      icon: Sparkles,
-      color: "#7C3AED",
-      action: "mentor",
-      context: "mentor",
-    },
-    {
-      id: "3",
-      title: "Study Resources",
-      description: "Medical textbooks & references",
-      icon: BookOpen,
-      color: "#059669",
-      action: "resources",
-      context: "resources",
-    },
-    {
-      id: "4",
-      title: "Exam Preparation",
-      description: "Study plans & practice questions",
-      icon: GraduationCap,
-      color: "#DC2626",
-      action: "exams",
-      context: "exams",
-    },
-    {
-      id: "5",
-      title: "Research Guidance",
-      description: "Thesis & research assistance",
-      icon: Microscope,
-      color: "#7C3AED",
-      action: "research",
-      context: "research",
-    },
-
-    {
-      id: "6",
-      title: "School Calendar",
-      description: "Check important events and dates",
-      icon: Calendar,
-      color: "#D97706",
-      action: "calendar",
-      context: "calendar",
-    },
-    {
-      id: "7",
-      title: "Requirements Upload",
-      description: "See required documents to upload",
-      icon: Upload,
-      color: "#F59E0B",
-      action: "requirements",
-      context: "requirements",
-    },
+    { id: "1", title: "AI Mentor", description: "Personalized medical study guidance", icon: Sparkles, color: "#7C3AED", action: "mentor", context: "mentor" },
+    { id: "3", title: "Study Resources", description: "Medical textbooks & references", icon: BookOpen, color: "#059669", action: "resources", context: "resources" },
+    { id: "4", title: "Exam Preparation", description: "Study plans & practice questions", icon: GraduationCap, color: "#DC2626", action: "exams", context: "exams" },
+    { id: "5", title: "Research Guidance", description: "Thesis & research assistance", icon: Microscope, color: "#7C3AED", action: "research", context: "research" },
+    { id: "6", title: "School Calendar", description: "Check important events and dates", icon: Calendar, color: "#D97706", action: "calendar", context: "calendar" },
+    { id: "7", title: "Requirements Upload", description: "See required documents to upload", icon: Upload, color: "#F59E0B", action: "requirements", context: "requirements" },
   ];
 
   useEffect(() => {
@@ -134,7 +89,6 @@ export default function AIAssistant() {
     }
   }, [messages]);
 
-  // Scroll input when it reaches maximum height
   useEffect(() => {
     if (inputHeight > 100 && inputScrollRef.current) {
       inputScrollRef.current.scrollToEnd({ animated: true });
@@ -146,22 +100,16 @@ export default function AIAssistant() {
       clearInterval(typingIntervalRef.current);
       typingIntervalRef.current = null;
     }
-
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-
     setIsTyping(false);
     setIsLoading(false);
-
-    // Update the last message to remove typing indicator
     setMessages((prev) => {
       const lastMessage = prev[prev.length - 1];
       if (lastMessage && lastMessage.sender === "bot" && lastMessage.isTyping) {
-        return prev.map((msg) =>
-          msg.id === lastMessage.id ? { ...msg, isTyping: false } : msg
-        );
+        return prev.map((msg) => msg.id === lastMessage.id ? { ...msg, isTyping: false } : msg);
       }
       return prev;
     });
@@ -169,39 +117,17 @@ export default function AIAssistant() {
 
   const simulateTyping = (fullText: string, messageId: string) => {
     let currentIndex = 0;
-    const typingSpeed = 0.5; // Faster typing speed
-
-    if (typingIntervalRef.current) {
-      clearInterval(typingIntervalRef.current);
-    }
-
+    const typingSpeed = 0.5;
+    if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
     setIsTyping(true);
-
     return new Promise<void>((resolve) => {
       typingIntervalRef.current = setInterval(() => {
         if (currentIndex <= fullText.length) {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === messageId
-                ? {
-                    ...msg,
-                    text: fullText.substring(0, currentIndex),
-                    isTyping: currentIndex < fullText.length,
-                  }
-                : msg
-            )
-          );
+          setMessages((prev) => prev.map((msg) => msg.id === messageId ? { ...msg, text: fullText.substring(0, currentIndex), isTyping: currentIndex < fullText.length } : msg));
           currentIndex++;
         } else {
-          if (typingIntervalRef.current) {
-            clearInterval(typingIntervalRef.current);
-            typingIntervalRef.current = null;
-          }
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === messageId ? { ...msg, isTyping: false } : msg
-            )
-          );
+          if (typingIntervalRef.current) { clearInterval(typingIntervalRef.current); typingIntervalRef.current = null; }
+          setMessages((prev) => prev.map((msg) => msg.id === messageId ? { ...msg, isTyping: false } : msg));
           setIsTyping(false);
           resolve();
         }
@@ -209,66 +135,17 @@ export default function AIAssistant() {
     });
   };
 
-  const getAIResponse = async (
-    message: string,
-    context: string = "general"
-  ) => {
-    if (!user) {
-      return {
-        text: "I need to know who you are to help. Please log in again.",
-        context: null,
-      };
-    }
-
+  const getAIResponse = async (message: string, context: string = "general") => {
+    if (!user) return { text: "I need to know who you are to help. Please log in again.", context: null };
     try {
       abortControllerRef.current = new AbortController();
       const signal = abortControllerRef.current.signal;
-
-      const response = await axios.post(
-        `${API_BASE_URL}/api/ai/ai_integration.php`,
-        {
-          user_id: user.id,
-          query: message,
-          context: context,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          signal: signal,
-          timeout: 30000,
-        }
-      );
-
-      // Json Response
-      const data = response.data;
-
-      if (data.success) {
-        return {
-          text: data.response,
-          context: data.context || context,
-        };
-      } else {
-        return {
-          text:
-            data.message ||
-            "I'm having trouble connecting to the system right now. Please try again later.",
-          context: null,
-        };
-      }
+      const response = await axios.post(`${API_BASE_URL}/api/ai/ai_integration.php`, { user_id: user.id, query: message, context }, { headers: { "Content-Type": "application/json" }, signal, timeout: 30000 });
+      if (response.data.success) return { text: response.data.response, context: response.data.context || context };
+      return { text: response.data.message || "Trouble connecting. Try again.", context: null };
     } catch (error: any) {
-      if (error.name === "AbortError") {
-        console.log("Request aborted");
-        return {
-          text: "",
-          context: null,
-        };
-      }
-      console.error("Error calling AI API:", error);
-      return {
-        text: "I'm experiencing technical difficulties. Please check your connection and try again.",
-        context: null,
-      };
+      if (error.name === "AbortError") return { text: "", context: null };
+      return { text: "Technical difficulties. Check connection.", context: null };
     } finally {
       abortControllerRef.current = null;
     }
@@ -276,262 +153,79 @@ export default function AIAssistant() {
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputText.trim(),
-      sender: "user",
-      timestamp: new Date(),
-    };
-
+    const userMessage: Message = { id: Date.now().toString(), text: inputText.trim(), sender: "user", timestamp: new Date() };
     setMessages((prev) => [...prev, userMessage]);
-    setInputText("");
-    setInputHeight(0);
-    setIsLoading(true);
-
+    setInputText(""); setInputHeight(0); setIsLoading(true);
     try {
-      // send and get response
       const response = await getAIResponse(inputText, currentContext);
-
       if (!response.text) return;
-
       const botMessageId = (Date.now() + 1).toString();
-
-      const botMessage: Message = {
-        id: botMessageId,
-        text: "",
-        sender: "bot",
-        timestamp: new Date(),
-        isTyping: true,
-        context: response.context,
-      };
-
+      const botMessage: Message = { id: botMessageId, text: "", sender: "bot", timestamp: new Date(), isTyping: true, context: response.context };
       setMessages((prev) => [...prev, botMessage]);
       await simulateTyping(response.text, botMessageId);
     } catch (error) {
-      console.error("Error getting AI response:", error);
-      Alert.alert("Error", "Failed to get response from AI assistant");
-    } finally {
-      setIsLoading(false);
-    }
+      Alert.alert("Error", "Failed to get response");
+    } finally { setIsLoading(false); }
   };
 
-  // Quick Link Response
   const handleQuickLink = async (action: string, context: string) => {
     if (isLoading) return;
-
     setCurrentContext(context);
-
     const messagesMap: Record<string, string> = {
-      mentor:
-        "I need guidance on my medical studies and career path. Can you provide personalized mentorship?",
-      rotations:
-        "Tell me about clinical rotations scheduling and requirements.",
-      resources: "What medical textbooks and study resources do you recommend?",
-      exams: "Help me create a study plan for my upcoming medical exams.",
-      research: "I need assistance with my medical research project or thesis.",
-      evaluation:
-        "Show me my evaluation status and what requirements I need to complete.",
+      mentor: "I need guidance on my medical studies. Personalized mentorship?",
+      resources: "Medical textbooks and study resources recommendation?",
+      exams: "Study plan for upcoming medical exams.",
+      research: "Assistance with medical research project.",
       calendar: "What events are on my calendar?",
       requirements: "What requirements do I need to complete?",
     };
-
     const messageText = messagesMap[action] || "I need help with this area.";
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: messageText,
-      sender: "user",
-      timestamp: new Date(),
-    };
-
+    const userMessage: Message = { id: Date.now().toString(), text: messageText, sender: "user", timestamp: new Date() };
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
-
     try {
       const response = await getAIResponse(messageText, context);
-
       if (!response.text) return;
-
       const botMessageId = (Date.now() + 1).toString();
-
-      const botMessage: Message = {
-        id: botMessageId,
-        text: "",
-        sender: "bot",
-        timestamp: new Date(),
-        isTyping: true,
-        context: response.context,
-      };
-
+      const botMessage: Message = { id: botMessageId, text: "", sender: "bot", timestamp: new Date(), isTyping: true, context: response.context };
       setMessages((prev) => [...prev, botMessage]);
       await simulateTyping(response.text, botMessageId);
     } catch (error) {
-      console.error("Error getting AI response:", error);
-      Alert.alert("Error", "Failed to get response from AI assistant");
-    } finally {
-      setIsLoading(false);
-    }
+      Alert.alert("Error", "Failed to get response");
+    } finally { setIsLoading(false); }
   };
 
   const getUserInitials = () => {
     if (!user) return "U";
-    return (
-      `${user.first_name?.charAt(0) || ""}${user.last_name?.charAt(0) || ""}`.toUpperCase() ||
-      "U"
-    );
+    return `${user.first_name?.charAt(0) || ""}${user.last_name?.charAt(0) || ""}`.toUpperCase() || "U";
   };
 
   const handleInputContentSizeChange = (event: any) => {
-    const height = event.nativeEvent.contentSize.height;
-    // Limit height to 120 pixels max
-    setInputHeight(Math.min(height, 120));
+    setInputHeight(Math.min(event.nativeEvent.contentSize.height, 120));
   };
-
-  const renderMessage = ({ item }: { item: Message }) => (
-    <View
-      className={`flex-row mb-5 ${item.sender === "user" ? "justify-end" : "justify-start"}`}
-    >
-      <View
-        className={`flex-row max-w-[85%] ${item.sender === "user" ? "flex-row-reverse" : ""}`}
-      >
-        <View
-          className={`w-10 h-10 rounded-full items-center justify-center mx-2 ${
-            item.sender === "user" ? "bg-[#8C2323]" : "bg-[#2563EB]"
-          }`}
-        >
-          {item.sender === "user" ? (
-            <Text className="text-white font-bold text-xs">
-              {getUserInitials()}
-            </Text>
-          ) : (
-            <Text className="text-white font-bold text-xs">AI</Text>
-          )}
-        </View>
-        <View
-          className={`rounded-2xl px-4 py-3 ${
-            item.sender === "user"
-              ? "bg-[#8C2323] rounded-tr-sm"
-              : "bg-gray-100 rounded-tl-sm"
-          }`}
-        >
-          <Text
-            className={`text-base ${
-              item.sender === "user" ? "text-white" : "text-gray-800"
-            }`}
-          >
-            {item.text}
-          </Text>
-          <Text
-            className={`text-xs mt-1 ${
-              item.sender === "user" ? "text-[#FFB3B3]" : "text-gray-500"
-            }`}
-          >
-            {item.timestamp.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-
-  const renderQuickLinks = () => (
-    <View className="mb-6">
-      <Text style={{ fontSize: 18, fontWeight: '600', color: textColor, marginBottom: 16, paddingHorizontal: 16 }}>
-        Quick Access for Medical Students
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="px-4"
-      >
-        {quickLinks.map((link) => {
-          const IconComponent = link.icon;
-          return (
-            <TouchableOpacity
-              key={link.id}
-              className="bg-white rounded-2xl p-4 mr-3 shadow border border-gray-100 w-44"
-              onPress={() => handleQuickLink(link.action, link.context)}
-              style={{ backgroundColor: cardColor }}
-              disabled={isLoading}
-            >
-              <View
-                className="w-12 h-12 rounded-xl items-center justify-center mb-3"
-                style={{ backgroundColor: link.color }}
-              >
-                <IconComponent size={22} color="#fff" />
-              </View>
-              <Text className="font-semibold text-gray-900 text-sm mb-1" style={{ color: textColor }}>
-                {link.title}
-              </Text>
-              <Text className="text-xs text-gray-500 leading-snug">
-                {link.description}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
 
   return (
     <View style={{ flex: 1, backgroundColor }}>
-      {/* Header */}
-      <View style={{ backgroundColor: cardColor, paddingHorizontal: 24, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: useThemeColor({}, 'border') }}>
-        <View className="flex-row items-center">
-          <View className="w-10 h-10 rounded-full items-center justify-center mr-3">
-            <Image
-              source={require("../../assets/images/chatbot.png")}
-              className="w-10 h-10"
-            />
-          </View>
-          <View>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: textColor }}>
-              <Text className="text-[#af1616] font-extrabold">Med</Text>
-              <Text className="text-[#16a34a] font-extrabold">SIS</Text> AI
-            </Text>
-            <Text style={{ fontSize: 14, color: mutedColor }}>
-              Medical Student Support
-            </Text>
-          </View>
-        </View>
-      </View>
+      <AIHeader cardColor={cardColor} textColor={textColor} mutedColor={mutedColor} borderColor={borderColor} />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "padding"}
-        keyboardVerticalOffset={0}
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "padding"} style={{ flex: 1 }}>
         <FlatList
           ref={flatListRef}
           data={messages}
-          renderItem={renderMessage}
+          renderItem={({ item }) => <AIMessageItem item={item} userInitials={getUserInitials()} />}
           keyExtractor={(item) => item.id}
           className="flex-1 px-4 pt-4"
-          ListHeaderComponent={renderQuickLinks()}
+          ListHeaderComponent={<AIQuickLinks quickLinks={quickLinks} textColor={textColor} cardColor={cardColor} isLoading={isLoading} onPressLink={handleQuickLink} />}
           ListFooterComponent={
             isLoading ? (
               <View className="flex-row justify-start mb-4">
                 <View className="flex-row max-w-[85%]">
-                  <View className="w-10 h-10 rounded-full bg-[#2563EB] items-center justify-center mx-2">
-                    <Text className="text-white font-bold text-xs">AI</Text>
-                  </View>
+                  <View className="w-10 h-10 rounded-full bg-[#2563EB] items-center justify-center mx-2"><Text className="text-white font-bold text-xs">AI</Text></View>
                   <View className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 flex-row items-center">
-                    <ActivityIndicator
-                      size="small"
-                      color="#2563EB"
-                      className="mr-2"
-                    />
+                    <ActivityIndicator size="small" color="#2563EB" className="mr-2" />
                     <Text className="text-gray-500 text-sm">Thinking...</Text>
                     {isTyping && (
-                      <TouchableOpacity
-                        onPress={stopGeneration}
-                        className="ml-3 bg-gray-200 rounded-full p-1"
-                      >
-                        <X size={14} color="#666" />
-                      </TouchableOpacity>
+                      <TouchableOpacity onPress={stopGeneration} className="ml-3 bg-gray-200 rounded-full p-1"><X size={14} color="#666" /></TouchableOpacity>
                     )}
                   </View>
                 </View>
@@ -540,59 +234,21 @@ export default function AIAssistant() {
           }
         />
 
-        {/* Input Area */}
-        <View style={{ backgroundColor, borderTopWidth: 1, borderTopColor: useThemeColor({}, 'border'), paddingHorizontal: 16, paddingVertical: 12 }}>
-          <View className="bg-gray-100 rounded-[15px] overflow-hidden" style={{ backgroundColor: loadColor }}>
-            <ScrollView
-              ref={inputScrollRef}
-              nestedScrollEnabled={true}
-              style={{ maxHeight: 120 }}
-            >
-              <TextInput
-                style={{
-                  color: textColor,
-                  fontSize: 16,
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  height: Math.max(40, inputHeight),
-                  minHeight: 40,
-                }}
-                placeholder="Ask MedSIS AI..."
-                placeholderTextColor={mutedColor}
-                value={inputText}
-                onChangeText={setInputText}
-                multiline
-                maxLength={500}
-                editable={!isLoading}
-                onContentSizeChange={handleInputContentSizeChange}
-              />
-            </ScrollView>
-            <View className="flex-row justify-end items-center px-2 py-1">
-              <Text className="text-xs text-gray-500 mr-2">
-                {inputText.length}/500
-              </Text>
-              {isLoading ? (
-                <TouchableOpacity
-                  onPress={stopGeneration}
-                  className="p-2 rounded-full bg-gray-500"
-                >
-                  <X size={20} color="#fff" />
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  onPress={handleSend}
-                  disabled={!inputText.trim()}
-                  className={`p-2 rounded-full ${
-                    !inputText.trim() ? "bg-gray-300" : "bg-[#8C2323]"
-                  }`}
-                >
-                  <Send size={20} color="#fff" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-          <Text className="text-xs text-gray-500 text-center mt-2"></Text>
-        </View>
+        <AIInputArea
+          inputText={inputText}
+          setInputText={setInputText}
+          isLoading={isLoading}
+          inputHeight={inputHeight}
+          handleInputContentSizeChange={handleInputContentSizeChange}
+          handleSend={handleSend}
+          stopGeneration={stopGeneration}
+          inputScrollRef={inputScrollRef}
+          backgroundColor={backgroundColor}
+          textColor={textColor}
+          mutedColor={mutedColor}
+          loadColor={loadColor}
+          borderColor={borderColor}
+        />
       </KeyboardAvoidingView>
     </View>
   );
