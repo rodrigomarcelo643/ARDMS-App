@@ -27,11 +27,11 @@ A comprehensive mobile application designed specifically for medical students to
 ### 🧠 ML-Powered Image Quality Validation
 MedSIS features an intelligent validation pipeline that utilizes a dedicated Machine Learning microservice to guarantee the legibility of academic records.
 
-When a student selects a document, it is seamlessly routed to the validation endpoint. This microservice computes the image's Laplacian variance to calculate a clarity confidence score. If the system rejects the quality due to blurriness, the upload is blocked and instant UI feedback is provided. If the system accepts the quality, the transaction generates a secure token and commits the document to storage.
+When a student selects a document (like a general academic requirement or an evaluation grade image), the file is seamlessly routed to the validation endpoint. This microservice computes the image's Laplacian variance to calculate a clarity confidence score. If the system rejects the quality due to blurriness, the upload is blocked and instant UI feedback is provided. If the system accepts the quality, the transaction generates a secure token and commits the document or grade image to storage.
 
 ```mermaid
 graph TD
-    A[Student Selects Document] -->|expo-image-picker| B(Send to Validation Microservice)
+    A[Student Selects Document or Grade Image] -->|expo-image-picker| B(Send to Validation Microservice)
     B -->|API Interaction| C{ML Validation Endpoint}
     C -->|Quality Score < 100| D[❌ Reject: 'Image is too blurry']
     D -.->|Real-time Error UI| A
