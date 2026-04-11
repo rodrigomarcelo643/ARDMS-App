@@ -9,6 +9,7 @@
   <img src="https://img.shields.io/badge/NativeWind-^4.1.23-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="NativeWind Version" />
   <img src="https://img.shields.io/badge/Version-1.0.0-brightgreen?style=for-the-badge" alt="App Version" />
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP Version" />
+  <img src="https://img.shields.io/badge/Python%20(ML%20Microservice)-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python ML Microservice" />
   <img src="https://img.shields.io/badge/Axios-^1.11.0-5A29E4?style=for-the-badge&logo=axios&logoColor=white" alt="Axios Version" />
   <img src="https://img.shields.io/badge/Context%20API-React-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="Context API" />
 </div>
