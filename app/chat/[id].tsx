@@ -66,6 +66,7 @@ export default function ChatScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUnsendModal, setShowUnsendModal] = useState(false);
   const [userOnlineStatus, setUserOnlineStatus] = useState(isOnline === 'true');
+  const [chatAvatar, setChatAvatar] = useState<string | null>(avatar as string || null);
   const [imageModalVisible, setImageModalVisible] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [imageCarousel, setImageCarousel] = useState<string[]>([]);
@@ -142,7 +143,10 @@ export default function ChatScreen() {
       if (user?.id) await messageService.updateMessageStatuses(user.id);
       const { users } = await messageService.getActiveUsers(user?.id || '', 1, 100);
       const targetUser = users.find(u => (u.unique_key || u.id) === id);
-      if (targetUser) setUserOnlineStatus(targetUser.isOnline);
+      if (targetUser) {
+        setUserOnlineStatus(targetUser.isOnline);
+        if (targetUser.avatar_url) setChatAvatar(targetUser.avatar_url);
+      }
     } catch (e) {}
   };
 
@@ -283,13 +287,13 @@ export default function ChatScreen() {
     <View style={{ flex: 1, backgroundColor }}>
       <ChatHeader
         name={name as string}
-        avatar={avatar as string}
+        avatar={chatAvatar as string}
         userOnlineStatus={userOnlineStatus}
         textColor={textColor}
         cardColor={cardColor}
         mutedColor={mutedColor}
         onBack={() => router.back()}
-        onInfo={() => { setNavigatingToInfo(true); router.push(`/chat-info/${safeId}?name=${name}&avatar=${avatar || ''}&user_type=${user_type}&isOnline=${userOnlineStatus}`); setNavigatingToInfo(false); }}
+        onInfo={() => { setNavigatingToInfo(true); router.push(`/chat-info/${safeId}?name=${name}&avatar=${chatAvatar || ''}&user_type=${user_type}&isOnline=${userOnlineStatus}`); setNavigatingToInfo(false); }}
         getInitials={getInitials}
       />
 
@@ -308,7 +312,7 @@ export default function ChatScreen() {
           </View>
         )}
         user={user}
-        avatar={avatar as string}
+        avatar={chatAvatar as string}
         name={name as string}
         cardColor={cardColor}
         textColor={textColor}
