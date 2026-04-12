@@ -59,6 +59,7 @@ export default function ChatInfoScreen() {
   const [hasMoreMedia, setHasMoreMedia] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [userOnlineStatus, setUserOnlineStatus] = useState<boolean | null>(initialOnlineStatus === 'true' ? true : initialOnlineStatus === 'false' ? false : null);
+  const [infoAvatar, setInfoAvatar] = useState<string | null>(avatar as string || null);
   const [statusLoading, setStatusLoading] = useState(true);
   
   useEffect(() => {
@@ -91,7 +92,12 @@ export default function ChatInfoScreen() {
       await new Promise(r => setTimeout(r, 1500));
       const { users } = await messageService.getActiveUsers(user?.id || '', 1, 100);
       const targetUser = users.find(u => (u.unique_key || u.id) === id);
-      setUserOnlineStatus(targetUser ? targetUser.isOnline : false);
+      if (targetUser) {
+        setUserOnlineStatus(targetUser.isOnline);
+        if (targetUser.avatar_url) setInfoAvatar(targetUser.avatar_url);
+      } else {
+        setUserOnlineStatus(false);
+      }
     } catch (e) { setUserOnlineStatus(false); } finally { setStatusLoading(false); }
   };
 
@@ -176,7 +182,7 @@ export default function ChatInfoScreen() {
 
       <InfoProfileHeader
         name={name as string}
-        avatar={avatar as string}
+        avatar={infoAvatar as string}
         user_type={user_type}
         userOnlineStatus={userOnlineStatus}
         statusLoading={statusLoading}
