@@ -68,6 +68,7 @@ MedSIS App v1.0.0  delivers a comprehensive mobile solution specifically designe
 - 💬 Real-time messaging system with live updates
 - 📊 Comprehensive evaluation tracking with e-signatures
 - 🌙 Dark/Light theme support with NativeWind styling
+- 🚀 **Persistent Caching**: Optimized message and chat data recovery for slow networks
 - ⚡ 100% test coverage ensuring reliability and stability
 
 ## Project Structure
@@ -127,6 +128,12 @@ MedSIS-App/
 ├── services/                    # External services
 │   ├── messageService.ts        # Real-time messaging and chat functionality
 │   └── notificationService.ts   # Push notification handling
+├── docs/                         # Detailed documentation
+│   ├── ARCHITECTURE.md          # System design overview
+│   ├── CACHING_STRATEGY.md      # Local persistence & performance (NEW!)
+│   ├── IMAGE_BLUR_ANALYSIS.md   # ML validation details
+│   ├── STATE_MANAGEMENT.md      # Redux and Context API usage
+│   └── ...
 ├── tests/                       # Comprehensive test suite
 │   ├── auth/                    # Authentication tests
 │   ├── screens/                 # Screen component tests
@@ -170,9 +177,9 @@ MedSIS-App/
 
 ### Messaging & Communication
 
-- **app/screens/messages.tsx** - Messages and conversations management with real-time updates
-- **app/chat/[id].tsx** - Individual chat conversation screen with message handling
-- **app/chat-info/[id].tsx** - Chat details, media sharing, and user information
+- **app/screens/messages.tsx** - Messages and conversations management with persistent caching
+- **app/chat/[id].tsx** - Individual chat conversation screen with instant cache fallback
+- **app/chat-info/[id].tsx** - Chat details and media sharing with cached resource lists
 
 ### Additional Screens
 
@@ -247,6 +254,7 @@ The codebase has recently undergone a major refactoring to break down monolithic
 - **Time Management**: Philippine timezone integration
 - **Data Loading**: Lazy loading and pagination support
 - **Image Analysis**: ML-powered blur detection and quality assessment
+- **Caching**: Multi-layered AsyncStorage persistence for offline-first capabilities
 - **Configuration**: Centralized API configuration management
 - **Testing**: Comprehensive test suite with constants-based configuration
 
@@ -295,8 +303,9 @@ The codebase has recently undergone a major refactoring to break down monolithic
 - ✅ Student requirement upload system with document management
 - ✅ View evaluation results history and evaluator e-signatures
 - ✅ Secure authentication with OTP verification
-- ✅ Real-time messaging and communication system
+- ✅ Real-time messaging and communication system with persistent caching
 - ✅ AI-powered student assistant for academic support
+- ✅ "Zero-Latency" feel with instant fallback for chat and info screens
 - ✅ Philippine timezone integration for accurate scheduling
 - ✅ Dark/Light theme support
 - ✅ Comprehensive privacy policy and terms acceptance
