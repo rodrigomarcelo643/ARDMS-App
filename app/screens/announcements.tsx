@@ -31,7 +31,7 @@ const AnnouncementsScreen: React.FC = () => {
   const cardColor = useThemeColor({}, 'card');
   const mutedColor = useThemeColor({}, 'muted');
   const loadColor = useThemeColor({}, 'loaderCard');
-  
+
   // Enhanced navigation detection
   const hasThreeButtonNav = React.useMemo(() => {
     if (Platform.OS === 'ios') {
@@ -47,7 +47,7 @@ const AnnouncementsScreen: React.FC = () => {
   const router = useRouter();
   const dispatch = useDispatch();
   const { items: announcements, loading, error } = useSelector(state => state.announcements);
-  
+
   const [filteredAnnouncements, setFilteredAnnouncements] = useState<Announcement[]>([]);
   const [displayedAnnouncements, setDisplayedAnnouncements] = useState<Announcement[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,7 +78,7 @@ const AnnouncementsScreen: React.FC = () => {
     try {
       dispatch(setAnnouncementsLoading(true));
       dispatch(setAnnouncementsError(null));
-      
+
       // Use GET request with query parameters
       const response = await axios.get(`${API_BASE_URL}/api/get_student_announcements.php`, {
         params: {
@@ -96,7 +96,7 @@ const AnnouncementsScreen: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error fetching announcements:', err);
-      
+
       // More specific error handling
       if (err.response?.status === 400) {
         dispatch(setAnnouncementsError('Invalid request. Please check if the API endpoint is correct.'));
@@ -122,11 +122,11 @@ const AnnouncementsScreen: React.FC = () => {
   // Filter announcements based on selected priority
   useEffect(() => {
     let filtered = [...announcements];
-    
+
     if (selectedPriority !== 'all') {
       filtered = filtered.filter(ann => ann.priority === selectedPriority);
     }
-    
+
     setFilteredAnnouncements(filtered);
     setPage(1); // Reset to first page when filters change
   }, [announcements, selectedPriority]);
@@ -171,10 +171,10 @@ const AnnouncementsScreen: React.FC = () => {
   // Handle scroll events
   const handleScroll = (event: any) => {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    
+
     // Show back to top button when scrolled down 300 pixels
     setShowBackToTop(contentOffset.y > 300);
-    
+
     // Check if we've scrolled to the bottom for lazy loading
     const paddingToBottom = 20;
     if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
@@ -222,7 +222,7 @@ const AnnouncementsScreen: React.FC = () => {
         <View className="flex-1 justify-center items-center p-5">
           <AlertTriangle size={48} color="#af1616" />
           <Text className="mt-4 text-center" style={{ color: textColor }}>{error}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             className="mt-4 px-6 py-3 bg-[#af1616] rounded-lg"
             onPress={fetchAnnouncements}
           >
@@ -239,9 +239,9 @@ const AnnouncementsScreen: React.FC = () => {
         <TouchableOpacity onPress={() => router.back()} className="mr-3">
           <ChevronLeft size={24} color={textColor} />
         </TouchableOpacity>
-        <Text className="text-xl font-bold" style={{color: textColor }} >Announcements</Text>
+        <Text className="text-xl font-bold" style={{ color: textColor }} >Announcements</Text>
         <View className="flex-1"></View>
-        <TouchableOpacity 
+        <TouchableOpacity
           className="flex-row items-center bg-maroon-100 rounded-full px-4 py-2"
           onPress={() => setShowPriorityDropdown(true)}
         >
@@ -271,8 +271,8 @@ const AnnouncementsScreen: React.FC = () => {
         className="flex-1"
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ 
-          paddingBottom: hasThreeButtonNav ? insets.bottom + 16 : isGestureNav ? 24 : 16 
+        contentContainerStyle={{
+          paddingBottom: hasThreeButtonNav ? insets.bottom + 16 : isGestureNav ? 24 : 16
         }}
       >
         {displayedAnnouncements.length === 0 ? (
@@ -295,11 +295,11 @@ const AnnouncementsScreen: React.FC = () => {
                 textColor={textColor}
               />
             ))}
-            
+
             {loadingMore && <LazyLoader cardColor={cardColor} loadColor={loadColor} />}
-            
+
             {displayedAnnouncements.length < filteredAnnouncements.length && !loadingMore && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="bg-[#af1616] rounded-lg p-4 items-center mt-4"
                 onPress={loadMore}
               >

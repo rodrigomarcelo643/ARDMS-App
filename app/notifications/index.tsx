@@ -26,7 +26,7 @@ const API_URL = `${API_BASE_URL}/api`;
 // Skeleton Loader Component
 const SkeletonLoader = ({ width, height, borderRadius = 4, style = {}, children, loadColor }: { width: number | string; height: number; borderRadius?: number; style?: any; children?: React.ReactNode; loadColor?: string }) => {
   return (
-    <View 
+    <View
       className="bg-gray-200 dark:bg-gray-700 mb-2 overflow-hidden"
       style={[{ width, height, borderRadius, backgroundColor: loadColor }, style]}
     >
@@ -54,7 +54,7 @@ const NotificationsScreen = () => {
   const cardColor = useThemeColor({}, 'card');
   const mutedColor = useThemeColor({}, 'muted');
   const loadColor = useThemeColor({}, 'loaderCard');
-  
+
   // Detect three-button navigation (same logic as tab layout)
   const hasThreeButtonNav = insets.bottom > 0;
 
@@ -69,7 +69,7 @@ const NotificationsScreen = () => {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(10);
   const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
-  
+
   const scrollY = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -93,91 +93,91 @@ const NotificationsScreen = () => {
     }
   };
 
-// Fetch notifications from API
-const fetchNotifications = async (loadMore = false, silent = false) => {
-  try {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    // Only show loading indicators if not silent
-    if (!silent) {
-      if (loadMore) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
+  // Fetch notifications from API
+  const fetchNotifications = async (loadMore = false, silent = false) => {
+    try {
+      if (!user) {
+        setLoading(false);
+        return;
       }
-    }
 
-    const response = await axios.get(`${API_URL}/get_student_notifications.php`, {
-      params: {
-        user_id: user.id,
-        limit: loadMore ? displayLimit + 10 : displayLimit
-      },
-      timeout: 10000 // 10 second timeout
-    });
+      // Only show loading indicators if not silent
+      if (!silent) {
+        if (loadMore) {
+          setLoadingMore(true);
+        } else {
+          setLoading(true);
+        }
+      }
 
-    if (response.data.success) {
-      // Transform API data
-      const transformedNotifications = response.data.notifications.map((notif: any) => ({
-        id: notif.id,
-        type: mapNotificationType(notif.type),
-        title: notif.title,
-        message: notif.message,
-        time: formatTime(notif.created_at),
-        read: notif.status === 'read',
-        avatar: getAvatarForType(notif.type)
-      }));
+      const response = await axios.get(`${API_URL}/get_student_notifications.php`, {
+        params: {
+          user_id: user.id,
+          limit: loadMore ? displayLimit + 10 : displayLimit
+        },
+        timeout: 10000 // 10 second timeout
+      });
 
-      setNotifications(transformedNotifications);
+      if (response.data.success) {
+        // Transform API data
+        const transformedNotifications = response.data.notifications.map((notif: any) => ({
+          id: notif.id,
+          type: mapNotificationType(notif.type),
+          title: notif.title,
+          message: notif.message,
+          time: formatTime(notif.created_at),
+          read: notif.status === 'read',
+          avatar: getAvatarForType(notif.type)
+        }));
 
-      // Only update pagination on manual loads
-      if (loadMore) {
-        setDisplayLimit(prevLimit => prevLimit + 10);
+        setNotifications(transformedNotifications);
+
+        // Only update pagination on manual loads
+        if (loadMore) {
+          setDisplayLimit(prevLimit => prevLimit + 10);
+        } else if (!silent) {
+          setDisplayLimit(10);
+        }
+
+        // Update displayed notifications
+        setDisplayedNotifications(transformedNotifications.slice(0, displayLimit));
+
+        // Check for more notifications
+        setHasMoreNotifications(transformedNotifications.length > displayLimit);
       } else if (!silent) {
-        setDisplayLimit(10);
+        Alert.alert('Error', response.data.message || 'Failed to fetch notifications');
       }
-
-      // Update displayed notifications
-      setDisplayedNotifications(transformedNotifications.slice(0, displayLimit));
-
-      // Check for more notifications
-      setHasMoreNotifications(transformedNotifications.length > displayLimit);
-    } else if (!silent) {
-      Alert.alert('Error', response.data.message || 'Failed to fetch notifications');
+    } catch (error: any) {
+      console.error('Error fetching notifications:', error);
+      if (error.response) {
+        console.error('Server error:', error.response.status, error.response.data);
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+      } else {
+        console.error('Error:', error.message);
+      }
+    } finally {
+      if (!silent) {
+        setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
+      }
     }
-  } catch (error: any) {
-    console.error('Error fetching notifications:', error);
-    if (error.response) {
-      console.error('Server error:', error.response.status, error.response.data);
-    } else if (error.request) {
-      console.error('No response received:', error.request);
-    } else {
-      console.error('Error:', error.message);
+  };
+
+  // Start silent polling for new notifications
+  const startPolling = useCallback(() => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
     }
-  } finally {
-    if (!silent) {
-      setLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
-    }
-  }
-};
 
-// Start silent polling for new notifications
-const startPolling = useCallback(() => {
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-  }
+    const interval = setInterval(() => {
+      fetchNotifications(false, true); // silent = true
+    }, 1000); // Poll every 1 second
 
-  const interval = setInterval(() => {
-    fetchNotifications(false, true); // silent = true
-  }, 1000); // Poll every 1 second
-
-  setPollingInterval(interval);
-  return interval;
-}, [user]);
+    setPollingInterval(interval);
+    return interval;
+  }, [user]);
 
   // Load more notifications when reaching the end
   const loadMoreNotifications = () => {
@@ -217,7 +217,7 @@ const startPolling = useCallback(() => {
       'https://randomuser.me/api/portraits/men/22.jpg',
       'https://randomuser.me/api/portraits/women/65.jpg'
     ];
-    
+
     return avatars[Math.floor(Math.random() * avatars.length)];
   };
 
@@ -226,20 +226,20 @@ const startPolling = useCallback(() => {
     // Convert to Philippine time (UTC+8)
     const philippineTime = new Date(timestamp);
     philippineTime.setHours(philippineTime.getHours() + 8);
-    
+
     const now = new Date();
     const diffInMs = now.getTime() - philippineTime.getTime();
     const diffInSeconds = Math.floor(diffInMs / 1000);
     const diffInMinutes = Math.floor(diffInSeconds / 60);
     const diffInHours = Math.floor(diffInMinutes / 60);
     const diffInDays = Math.floor(diffInHours / 24);
-    
+
     if (diffInSeconds < 60) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
     if (diffInHours < 24) return `${diffInHours} hours ago`;
     if (diffInDays === 1) return 'Yesterday';
     if (diffInDays < 7) return `${diffInDays} days ago`;
-    
+
     // For older notifications, show the actual Philippine date
     return philippineTime.toLocaleDateString('en-PH', {
       timeZone: 'Asia/Manila',
@@ -253,7 +253,7 @@ const startPolling = useCallback(() => {
     if (user) {
       fetchNotifications();
       const interval = startPolling();
-      
+
       // Cleanup interval on unmount
       return () => {
         clearInterval(interval);
@@ -273,7 +273,7 @@ const startPolling = useCallback(() => {
       if (user) {
         fetchNotifications();
       }
-      return () => {};
+      return () => { };
     }, [user])
   );
 
@@ -285,13 +285,13 @@ const startPolling = useCallback(() => {
   const markAsRead = async (id: number) => {
     try {
       // Update locally first for immediate feedback
-      const updatedNotifications = notifications.map(n => 
+      const updatedNotifications = notifications.map(n =>
         n.id === id ? { ...n, read: true } : n
       );
-      
+
       setNotifications(updatedNotifications);
       setDisplayedNotifications(updatedNotifications.slice(0, displayLimit));
-      
+
       // Send update to server
       await axios.post(`${API_URL}/update_notification_status.php`, {
         notification_id: id,
@@ -300,10 +300,10 @@ const startPolling = useCallback(() => {
     } catch (error: any) {
       console.error('Error marking notification as read:', error);
       // Revert local change if server update fails
-      const originalNotifications = notifications.map(n => 
+      const originalNotifications = notifications.map(n =>
         n.id === id ? { ...n, read: false } : n
       );
-      
+
       setNotifications(originalNotifications);
       setDisplayedNotifications(originalNotifications.slice(0, displayLimit));
     }
@@ -331,10 +331,10 @@ const startPolling = useCallback(() => {
     try {
       // Update locally first
       const updatedNotifications = notifications.map(n => ({ ...n, read: true }));
-      
+
       setNotifications(updatedNotifications);
       setDisplayedNotifications(updatedNotifications.slice(0, displayLimit));
-      
+
       // Send update to server
       if (user) {
         await axios.post(`${API_URL}/mark_all_notifications_read.php`, {
@@ -394,11 +394,11 @@ const startPolling = useCallback(() => {
               <X size={20} color={colorScheme === 'dark' ? '#FFFFFF' : '#000000'} />
             </TouchableOpacity>
           </View>
-          
+
           <Text className="text-gray-600 dark:text-gray-300 mb-6">
             {message}
           </Text>
-          
+
           <View className="flex-row justify-end space-x-3">
             <TouchableOpacity
               onPress={onClose}
@@ -424,7 +424,7 @@ const startPolling = useCallback(() => {
       <SkeletonLoader width={44} height={44} borderRadius={22} style={{ marginRight: 16 }} loadColor={loadColor}>
         <SkeletonPulse />
       </SkeletonLoader>
-      
+
       <View className="flex-1">
         <View className="flex-row items-start justify-between mb-2">
           <SkeletonLoader width={120} height={20} loadColor={loadColor}>
@@ -434,7 +434,7 @@ const startPolling = useCallback(() => {
             <SkeletonPulse />
           </SkeletonLoader>
         </View>
-        
+
         <SkeletonLoader width="80%" height={16} style={{ marginBottom: 8 }} loadColor={loadColor}>
           <SkeletonPulse />
         </SkeletonLoader>
@@ -461,7 +461,7 @@ const startPolling = useCallback(() => {
           <SkeletonPulse />
         </SkeletonLoader>
       </View>
-      
+
       <View className="flex-row justify-between items-center">
         <SkeletonLoader width={80} height={16} loadColor={loadColor}>
           <SkeletonPulse />
@@ -503,7 +503,7 @@ const startPolling = useCallback(() => {
       <View className="flex-1 bg-white dark:bg-gray-900" style={{ backgroundColor }}>
         {/* Header Skeleton */}
         <HeaderSkeleton />
-        
+
         {/* Notifications List Skeleton */}
         <ScrollView className="mt-1">
           {[1, 2, 3, 4, 5].map((item) => (
@@ -520,13 +520,13 @@ const startPolling = useCallback(() => {
       <View className="pt-[50px] px-5 pb-4 bg-white border-b border-gray-200" style={{ backgroundColor: cardColor }}>
         <View className="flex-row items-center justify-between mb-4">
           <View className="flex-row items-center">
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => navigation.goBack()}
               className="p-2 -ml-2 mr-2"
             >
               <ChevronLeft size={24} color={textColor} />
             </TouchableOpacity>
-            <Text className="text-2xl font-bold text-gray-900" style={{ color:textColor }}>
+            <Text className="text-2xl font-bold text-gray-900" style={{ color: textColor }}>
               Notifications
             </Text>
           </View>
@@ -536,7 +536,7 @@ const startPolling = useCallback(() => {
             </TouchableOpacity>
           )}
         </View>
-        
+
         {displayedNotifications.length > 0 && (
           <View className="flex-row justify-between items-center">
             <Text className="text-gray-600 dark:text-gray-300">
@@ -548,7 +548,7 @@ const startPolling = useCallback(() => {
           </View>
         )}
       </View>
-   
+
       {/* Notifications List */}
       <ScrollView
         ref={scrollViewRef}
@@ -588,20 +588,19 @@ const startPolling = useCallback(() => {
               const isFeedback = feedbackIndex !== -1;
               const mainMessage = isFeedback ? notification.message.substring(0, feedbackIndex).trim() : notification.message;
               const feedbackText = isFeedback ? notification.message.substring(feedbackIndex + 9).trim() : '';
-              
+
               return (
                 <TouchableOpacity
                   key={notification.id}
                   style={{ backgroundColor: cardColor }}
-                  className={`flex-row items-start p-5 border-b border-gray-100 dark:border-gray-800 ${
-                    isFeedback ? 'bg-red-50 dark:bg-red-900/10' : (!notification.read ? 'bg-blue-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900')
-                  }`}
+                  className={`flex-row items-start p-5 border-b border-gray-100 dark:border-gray-800 ${isFeedback ? 'bg-red-50 dark:bg-red-900/10' : (!notification.read ? 'bg-blue-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900')
+                    }`}
                   onPress={() => markAsRead(notification.id)}
                 >
                   <View className={`p-3 rounded-full mr-4 ${getIconBackground(notification.type)}`}>
                     {getIcon(notification.type)}
                   </View>
-                  
+
                   <View className="flex-1">
                     <View className="flex-row items-start justify-between">
                       <Text className="font-semibold  text-base flex-1" style={{ color: textColor }}>
@@ -611,11 +610,11 @@ const startPolling = useCallback(() => {
                         <View className="w-2 h-2 rounded-full bg-[#8C2323] ml-2 mt-1" />
                       )}
                     </View>
-                    
+
                     <Text className="mt-1 text-gray-600text-sm" style={{ color: textColor }}>
                       {mainMessage}
                     </Text>
-                    
+
                     {isFeedback && feedbackText && (
                       <View className="mt-3 p-3 bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500 rounded-r-lg">
                         <Text className="text-red-800 dark:text-red-300 text-sm font-medium mb-1">
@@ -626,7 +625,7 @@ const startPolling = useCallback(() => {
                         </Text>
                       </View>
                     )}
-                    
+
                     <Text className="mt-2 text-xs text-gray-400 dark:text-gray-500">
                       {notification.time}
                     </Text>
@@ -634,7 +633,7 @@ const startPolling = useCallback(() => {
                 </TouchableOpacity>
               );
             })}
-            
+
             <LoadMoreComponent />
           </>
         )}

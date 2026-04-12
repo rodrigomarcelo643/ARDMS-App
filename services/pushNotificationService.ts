@@ -41,21 +41,21 @@ export async function registerForPushNotificationsAsync(): Promise<string | unde
   if (Device.isDevice) {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
-    
+
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
-    
+
     if (finalStatus !== 'granted') {
       console.warn('Failed to get push token for push notification!');
       return;
     }
-    
+
     try {
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId || 
-                        Constants.easConfig?.projectId;
-      
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId ||
+        Constants.easConfig?.projectId;
+
       if (!projectId) {
         console.warn('No EAS Project ID found in app.json. Fetching token might fail.');
       }
@@ -79,13 +79,13 @@ export async function savePushTokenToServer(userId: string, token: string) {
     console.log('User ID:', userId);
     console.log('Token:', token);
     console.log('API URL:', `${API_BASE_URL}/api/save_push_token.php`);
-    
+
     const response = await axios.post(`${API_BASE_URL}/api/save_push_token.php`, {
       user_id: userId,
       push_token: token,
       platform: Platform.OS,
     });
-    
+
     console.log('Response status:', response.status);
     console.log('Response data:', response.data);
     console.log('=== TOKEN SAVED SUCCESSFULLY ===');
@@ -104,7 +104,7 @@ export function setupNotificationListeners(
   const receivedListener = Notifications.addNotificationReceivedListener((notification) => {
     onNotificationReceived(notification);
   });
-  
+
   const responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
     onNotificationTapped(response);
   });
