@@ -1,4 +1,4 @@
-# MedSIS App - Medical Student Information System 
+# ARDMS — Academic Records and Document Management System
 
 <!-- Version Badges -->
 <div align="center" style="margin-bottom: 30px;">
@@ -16,17 +16,13 @@
 
 <!-- Project Images -->
 <div align="center" style="display: flex; justify-content: center; align-items: center; gap: 15px; margin: 30px 0 40px 0;">
-  <img src="https://msis.eduisync.io/msis/MSIS-ADMIN/assets/images/mockup.png" alt="Far Left Image" style="width: 150px; height: 250px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-  <img src="https://msis.eduisync.io/msis/MSIS-ADMIN/assets/images/mockup2.png" alt="Left Image" style="width: 150px; height: 250px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-  <img src="/mockup1.png" alt="MedSIS App" style="width: 200px; height: 350px; object-fit: contain; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />
-  <img src="https://msis.eduisync.io/msis/MSIS-ADMIN/assets/images/mockup3.png" alt="Right Image" style="width: 150px; height: 250px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-  <img src="https://msis.eduisync.io/msis/MSIS-ADMIN/assets/images/mockup4.png" alt="Far Right Image" style="width: 150px; height: 250px; object-fit: contain; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+  <img src="/mockup1.png" alt="ARDMS App" style="width: 200px; height: 350px; object-fit: contain; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" />
 </div>
 
-A comprehensive mobile application designed specifically for medical students to upload academic requirements, view evaluation results history, and manage their educational journey. This first version release focuses on streamlined document submission, evaluation tracking, and essential academic tools with AI assistance and real-time communication features.
+**ARDMS** (Academic Records and Document Management System) is a comprehensive mobile application designed for students to upload academic requirements, view evaluation results history, and manage their educational journey. This first version release focuses on streamlined document submission, evaluation tracking, and essential academic tools with AI assistance and real-time communication features.
 
 ### 🧠 ML-Powered Image Quality Validation
-MedSIS features an intelligent validation pipeline that utilizes a dedicated Machine Learning microservice to guarantee the legibility of academic records.
+ARDMS features an intelligent validation pipeline that utilizes a dedicated Machine Learning microservice to guarantee the legibility of academic records.
 
 When a student selects a document (like a general academic requirement or an evaluation grade image), the file is seamlessly routed to the validation endpoint. This microservice computes the image's Laplacian variance to calculate a clarity confidence score. If the system rejects the quality due to blurriness, the upload is blocked and instant UI feedback is provided. If the system accepts the quality, the transaction generates a secure token and commits the document or grade image to storage.
 
@@ -52,13 +48,13 @@ graph TD
 
 > **Note:** Download the APK file from Google Drive and install on your Android device. Make sure to enable "Install from unknown sources" in your device settings.
 
-## 🏥 Release v1.0.0
+## 🎓 Release v1.0.0
 
 **Release Date:** December 5, 2025
 
-### Streamlined Academic Management for Medical Students
+### Streamlined Academic Records and Document Management
 
-MedSIS App v1.0.0  delivers a comprehensive mobile solution specifically designed for medical students to efficiently manage their academic requirements and evaluations. This release focuses on core functionalities including secure document upload for academic requirements, real-time evaluation results tracking with e-signatures, AI-powered academic assistance, and seamless communication with faculty.  
+**ARDMS App v1.0.0** delivers a comprehensive mobile solution designed for students to efficiently manage their academic records and documents. This release focuses on core functionalities including secure document upload, real-time evaluation results tracking with e-signatures, AI-powered academic assistance, and seamless communication with faculty.
 
 **Key Highlights:**
 
@@ -74,7 +70,7 @@ MedSIS App v1.0.0  delivers a comprehensive mobile solution specifically designe
 ## Project Structure
 
 ```
-MedSIS-App/
+ARDMS-App/  # Academic Records and Document Management System
 ├── app/                          # Main application screens (file-based routing)
 │   ├── (tabs)/                   # Tab-based navigation screens ( Bottom Tabs)
 │   │   ├── _layout.tsx          # Tab layout configuration
