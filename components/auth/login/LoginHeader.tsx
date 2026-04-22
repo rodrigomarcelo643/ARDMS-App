@@ -14,7 +14,7 @@ export const LoginHeader: React.FC<LoginHeaderProps> = ({
   <View className="items-center mb-8">
     <Animated.View style={logoStyle}>
       <Image
-        source={require("../../../assets/images/swu-head.png")}
+        source={require("../../../assets/images/swu_head.png")}
         className="w-20 h-20 mb-1"
         accessibilityLabel="App logo"
       />
@@ -31,7 +31,7 @@ export const LoginHeader: React.FC<LoginHeaderProps> = ({
             textShadowRadius: 3,
           }}
         >
-          Med
+          ARD
         </Text>
         
         <Text
@@ -43,8 +43,20 @@ export const LoginHeader: React.FC<LoginHeaderProps> = ({
             textShadowRadius: 3,
           }}
         >
-          SIS
+          MS
         </Text>
+      </Text>
+      <Text
+        style={{
+          color: "#6b7280",
+          fontSize: 11,
+          fontWeight: "500",
+          textAlign: "center",
+          letterSpacing: 0.5,
+          marginTop: 2,
+        }}
+      >
+        Academic Records and Document Management System
       </Text>
     </Animated.View>
 
