@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // default values for optional fields with proper avatar handling
     const userWithDefaults: User = {
       ...userData,
-      avatar: userData.avatar || userData.avatar_url || "https://msis.eduisync.io/swu-head.png",
+      avatar: userData.avatar || userData.avatar_url || "https://ardms.eduisync.io/swu-head.png",
       avatar_url: userData.avatar_url || userData.avatar || undefined,
       avatar_data: userData.avatar_data || undefined,
       contact_number: userData.contact_number || "",
