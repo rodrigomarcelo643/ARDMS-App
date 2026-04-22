@@ -1,4 +1,4 @@
-# Contributing to MedSIS App 🤝
+# Contributing to ARDMS App 🤝
 
 <!-- Contribution Badges -->
 <div align="center" style="margin-bottom: 30px;">
@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge" alt="License" />
 </div>
 
-Thank you for your interest in contributing to MedSIS App! This document provides guidelines and instructions for contributing to the Medical Student Information System.
+Thank you for your interest in contributing to ARDMS App! This document provides guidelines and instructions for contributing to the Academic Records and Document Management System.
 
 ## 📋 Table of Contents
 
@@ -63,7 +63,7 @@ Before contributing, ensure you have:
 ### Repository Access
 
 **For Authorized Contributors:**
-1. Request access from the MSIS Development Team
+1. Request access from the ARDMS Development Team
 2. Sign the Contributor License Agreement (CLA)
 3. Receive repository access credentials
 
@@ -81,14 +81,14 @@ Before contributing, ensure you have:
 ### 2. Clone Your Fork
 
 ```bash
-git clone https://github.com/your-username/MedSIS-App.git
-cd MedSIS-App
+git clone https://github.com/your-username/ARDMS-App.git
+cd ARDMS-App
 ```
 
 ### 3. Add Upstream Remote
 
 ```bash
-git remote add upstream https://github.com/MSIS-Official/MedSIS-App.git
+git remote add upstream https://github.com/ARDMS-Official/ARDMS-App.git
 git remote -v
 ```
 
@@ -646,16 +646,16 @@ All contributors will be recognized in:
 
 ## 📄 License
 
-By contributing to MedSIS App, you agree that your contributions will be licensed under the same proprietary license as the project. See [LICENSE.md](LICENSE.md) for details.
+By contributing to ARDMS App, you agree that your contributions will be licensed under the same proprietary license as the project. See [LICENSE.md](LICENSE.md) for details.
 
 ---
 
-**Thank you for contributing to MedSIS App!** 🎉
+**Thank you for contributing to ARDMS App!** 🎉
 
 Your contributions help improve the educational experience for medical students at Southwestern University PHINMA.
 
 ---
 
-**MSIS Development Team**  
+**ARDMS Development Team**  
 **Version 1.0.0 - December 5, 2025**  
 **Copyright © 2025 MSIS. All Rights Reserved.**
