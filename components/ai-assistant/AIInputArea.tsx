@@ -49,7 +49,7 @@ export const AIInputArea: React.FC<AIInputAreaProps> = ({
             height: Math.max(40, inputHeight),
             minHeight: 40,
           }}
-          placeholder="Ask MedSIS AI..."
+          placeholder="Ask ARDMS AI..."
           placeholderTextColor={mutedColor}
           value={inputText}
           onChangeText={setInputText}
