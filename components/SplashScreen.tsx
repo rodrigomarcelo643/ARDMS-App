@@ -128,7 +128,7 @@ export function SplashScreen({ onAnimationComplete }) {
         }}
       >
         <Image
-          source={require("@/assets/images/medicine-logo.png")}
+          source={require("@/assets/images/medicine_logo.png")}
           className="w-4/5 h-4/5 opacity-30"
           resizeMode="contain"
           accessibilityLabel="Medicine logo watermark"
@@ -146,7 +146,7 @@ export function SplashScreen({ onAnimationComplete }) {
             }}
           >
             <Image
-              source={require("@/assets/images/swu-head.png")}
+              source={require("@/assets/images/swu_head.png")}
               className="w-40 h-40"
               resizeMode="contain"
               accessibilityLabel="App logo"
@@ -175,7 +175,7 @@ export function SplashScreen({ onAnimationComplete }) {
                   textShadowRadius: 3,
                 }}
               >
-                Med
+                ARD
               </Text>
               <Text
                 style={{
@@ -186,8 +186,20 @@ export function SplashScreen({ onAnimationComplete }) {
                   textShadowRadius: 3,
                 }}
               >
-                SIS
+                MS
               </Text>
+            </Text>
+            <Text
+              style={{
+                color: "#6b7280",
+                fontSize: 11,
+                fontWeight: "500",
+                textAlign: "center",
+                letterSpacing: 0.5,
+                marginTop: 4,
+              }}
+            >
+              Academic Records and Document Management System
             </Text>
           </Animated.View>
         </View>
