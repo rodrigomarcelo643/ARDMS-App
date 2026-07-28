@@ -1,6 +1,8 @@
+import OnboardingScreen from "@/components/onboarding/OnboardingScreen";
 import { SplashScreen as CustomSplashScreen } from "@/components/SplashScreen";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider as CustomThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { hasSeenOnboarding } from "@/lib/onboardingStorage";
 import { StoreProvider } from "@/redux/store";
 import {
   DarkTheme,
@@ -132,6 +134,7 @@ export default function RootLayout() {
 
   const [appIsReady, setAppIsReady] = useState(false);
   const [showCustomSplash, setShowCustomSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const isMountedRef = useRef(true);
   const splashAnimationCompleted = useRef(false);
   const minimumSplashTimeRef = useRef(1500);
@@ -156,9 +159,10 @@ export default function RootLayout() {
           await SplashScreen.hideAsync();
         }
 
-        setTimeout(() => {
+        setTimeout(async () => {
           if (isMountedRef.current && splashAnimationCompleted.current) {
-            //console.log(" Minimum splash time passed, hiding custom splash");
+            const seen = await hasSeenOnboarding();
+            if (!seen) setShowOnboarding(true);
             setShowCustomSplash(false);
           }
         }, minimumSplashTimeRef.current);
@@ -177,37 +181,41 @@ export default function RootLayout() {
     };
   }, [appIsReady]);
 
-  const handleSplashAnimationComplete = () => {
+  const handleSplashAnimationComplete = async () => {
     splashAnimationCompleted.current = true;
     const elapsedTime = Date.now() - startTimeRef.current;
-    //console.log(" Splash animation completed, elapsed:", elapsedTime);
 
     if (appIsReady && elapsedTime >= minimumSplashTimeRef.current) {
-      // console.log("Conditions met, hiding custom splash now");
+      const seen = await hasSeenOnboarding();
+      if (!seen) setShowOnboarding(true);
       setShowCustomSplash(false);
     }
   };
-
-  if (!appIsReady) {
-    console.log(" App not ready, returning null (fonts still loading)");
-    return null;
-  }
 
   return (
     <CustomThemeProvider>
       <StoreProvider>
         <AuthProvider>
           {/* Main app content */}
-          <View style={[styles.mainContent, showCustomSplash && styles.hidden]}>
-            <MainLayout />
+          <View style={[styles.mainContent, (showCustomSplash || showOnboarding) && styles.hidden]}>
+            {appIsReady && <MainLayout />}
           </View>
 
-          {/* Custom splash overlay */}
-          {showCustomSplash && (
+          {/* Onboarding overlay */}
+          {!showCustomSplash && showOnboarding && (
             <View style={styles.splashOverlay}>
-              <CustomSplashScreen
-                onAnimationComplete={handleSplashAnimationComplete}
-              />
+              <OnboardingScreen onDone={() => setShowOnboarding(false)} />
+            </View>
+          )}
+
+          {/* Custom splash overlay */}
+          {(!appIsReady || showCustomSplash) && (
+            <View style={styles.splashOverlay}>
+              {appIsReady && (
+                <CustomSplashScreen
+                  onAnimationComplete={handleSplashAnimationComplete}
+                />
+              )}
             </View>
           )}
         </AuthProvider>
@@ -233,7 +241,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "transparent",
+    backgroundColor: "#ffffff",
     zIndex: 9999,
   },
 });
