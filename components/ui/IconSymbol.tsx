@@ -18,6 +18,7 @@ const MAPPING = {
   'chart.bar.fill': 'bar-chart',
   'doc.text.fill': 'description',
   'list.bullet.clipboard': 'checklist',
+  'chevron.right': 'chevron-right',
 } as const satisfies IconMapping;
 
 export function IconSymbol({
