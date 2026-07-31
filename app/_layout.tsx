@@ -1,6 +1,8 @@
+import NetworkStatusBanner from "@/components/NetworkStatusBanner";
 import OnboardingScreen from "@/components/onboarding/OnboardingScreen";
 import { SplashScreen as CustomSplashScreen } from "@/components/SplashScreen";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { NetworkProvider, useNetworkBanner } from "@/contexts/NetworkContext";
 import { ThemeProvider as CustomThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { hasSeenOnboarding } from "@/lib/onboardingStorage";
 import { StoreProvider } from "@/redux/store";
@@ -194,33 +196,68 @@ export default function RootLayout() {
 
   return (
     <CustomThemeProvider>
-      <StoreProvider>
-        <AuthProvider>
-          {/* Main app content */}
-          <View style={[styles.mainContent, (showCustomSplash || showOnboarding) && styles.hidden]}>
-            {appIsReady && <MainLayout />}
-          </View>
-
-          {/* Onboarding overlay */}
-          {!showCustomSplash && showOnboarding && (
-            <View style={styles.splashOverlay}>
-              <OnboardingScreen onDone={() => setShowOnboarding(false)} />
-            </View>
-          )}
-
-          {/* Custom splash overlay */}
-          {(!appIsReady || showCustomSplash) && (
-            <View style={styles.splashOverlay}>
-              {appIsReady && (
-                <CustomSplashScreen
-                  onAnimationComplete={handleSplashAnimationComplete}
-                />
-              )}
-            </View>
-          )}
-        </AuthProvider>
-      </StoreProvider>
+      <NetworkProvider>
+        <StoreProvider>
+          <AuthProvider>
+            {/* Main app content */}
+            <AppContent
+              appIsReady={appIsReady}
+              showCustomSplash={showCustomSplash}
+              showOnboarding={showOnboarding}
+              setShowOnboarding={setShowOnboarding}
+              handleSplashAnimationComplete={handleSplashAnimationComplete}
+            />
+          </AuthProvider>
+        </StoreProvider>
+      </NetworkProvider>
     </CustomThemeProvider>
+  );
+}
+
+// Extracted so it can read useNetworkBanner inside the NetworkProvider
+function AppContent({
+  appIsReady,
+  showCustomSplash,
+  showOnboarding,
+  setShowOnboarding,
+  handleSplashAnimationComplete,
+}: {
+  appIsReady: boolean;
+  showCustomSplash: boolean;
+  showOnboarding: boolean;
+  setShowOnboarding: (v: boolean) => void;
+  handleSplashAnimationComplete: () => void;
+}) {
+  const { bannerHeight } = useNetworkBanner();
+
+  return (
+    <>
+      {/* Main app content */}
+      <View style={[styles.mainContent, (showCustomSplash || showOnboarding) && styles.hidden]}>
+        {appIsReady && <MainLayout />}
+      </View>
+
+      {/* Global Network Status Banner */}
+      {!showCustomSplash && !showOnboarding && <NetworkStatusBanner />}
+
+      {/* Onboarding overlay */}
+      {!showCustomSplash && showOnboarding && (
+        <View style={styles.splashOverlay}>
+          <OnboardingScreen onDone={() => setShowOnboarding(false)} />
+        </View>
+      )}
+
+      {/* Custom splash overlay */}
+      {(!appIsReady || showCustomSplash) && (
+        <View style={styles.splashOverlay}>
+          {appIsReady && (
+            <CustomSplashScreen
+              onAnimationComplete={handleSplashAnimationComplete}
+            />
+          )}
+        </View>
+      )}
+    </>
   );
 }
 
