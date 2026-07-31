@@ -186,7 +186,7 @@ const AnnouncementsScreen: React.FC = () => {
   // Load announcements on component mount
   useEffect(() => {
     fetchAnnouncements();
-  }, [user]);
+  }, [user?.id]);
 
   // Handle pull-to-refresh
   const onRefresh = () => {
