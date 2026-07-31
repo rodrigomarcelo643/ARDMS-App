@@ -144,7 +144,7 @@ const SchoolCalendar: React.FC = () => {
 
   useEffect(() => {
     fetchCalendarData();
-  }, [user]);
+  }, [user?.id]);
 
 
 
