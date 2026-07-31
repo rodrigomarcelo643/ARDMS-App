@@ -166,7 +166,7 @@ export default function FolderScreen() {
 
   useEffect(() => {
     fetchRequirements();
-  }, [user]);
+  }, [user?.id]);
 
   // Function to refresh requirements after upload/delete
   const refreshRequirements = async () => {
