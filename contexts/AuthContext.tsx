@@ -1,10 +1,12 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useContext, useEffect, useState } from "react";
-import Toast from "react-native-toast-message";
+import { AuthContextType, User } from '@/@types/auth';
 import { API_BASE_URL } from '@/constants/Config';
-import { User, AuthContextType } from '@/@types/auth';
-import axios from 'axios';
 import { registerForPushNotificationsAsync, savePushTokenToServer } from '@/services/pushNotificationService';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from 'axios';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { AppState, AppStateStatus } from "react-native";
+import Toast from "react-native-toast-message";
+
 // Context To pass variables 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -83,6 +85,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loadUser();
   }, []);
 
+  // Listen for AppState changes to re-query backend database live whenever app comes to foreground
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const subscription = AppState.addEventListener("change", (nextAppState: AppStateStatus) => {
+      if (nextAppState === "active") {
+        refreshUser();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [user?.id]);
+
   const login = async (userData: User) => {
     // Prevent login if account is deactivated
     if (userData.account_status === "Deactivated" || userData.account_status === "deactivated") {
@@ -99,7 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // default values for optional fields with proper avatar handling
     const userWithDefaults: User = {
       ...userData,
-      avatar: userData.avatar || userData.avatar_url || "https://ardms.eduisync.io/swu-head.png",
+      avatar: userData.avatar || userData.avatar_url || "https://msis-som.eduisync.io/swu-head.png",
       avatar_url: userData.avatar_url || userData.avatar || undefined,
       avatar_data: userData.avatar_data || undefined,
       contact_number: userData.contact_number || "",
@@ -181,26 +198,71 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     //console.log("User updated with:", Object.keys(updates));
   };
 
-  // Refresh user data from API (useful for getting latest avatar_data)
+  // Refresh user data live from backend database (triggered by DB updates, promotions, or DB factors)
   const refreshUser = async () => {
-    if (!user) return;
+    if (!user?.id) return false;
 
     try {
       const API_URL = `${API_BASE_URL}/api`;
       const response = await axios.post(`${API_URL}/get_user_data.php`, {
-        user_id: user.id
+        user_id: user.id,
+        live_fetch: true
+      }, {
+        timeout: 8000,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
       });
 
       const data = response.data;
 
       if (data.success && data.user) {
-        await login(data.user); // Update with latest data including avatar_data
-        //console.log("User data refreshed from API");
+        const freshUser: User = data.user;
+
+        if (freshUser.account_status === "Deactivated" || freshUser.account_status === "deactivated") {
+          console.warn("Account deactivated in database. Clearing session.");
+          await logout();
+          return false;
+        }
+
+        const userWithDefaults: User = {
+          ...freshUser,
+          avatar: freshUser.avatar || freshUser.avatar_url || "https://msis-som.eduisync.io/swu-head.png",
+          avatar_url: freshUser.avatar_url || freshUser.avatar || undefined,
+          avatar_data: freshUser.avatar_data || undefined,
+          contact_number: freshUser.contact_number || "",
+          joinDate: freshUser.joinDate || "",
+          policy_accepted: freshUser.policy_accepted ?? user.policy_accepted ?? 0,
+          year_level_name: freshUser.year_level_name || (Number(freshUser.year_level_id) === 4 ? "Graduating" : `Year ${freshUser.year_level_id}`),
+        };
+
+        const hasChanged =
+          user.year_level_id !== userWithDefaults.year_level_id ||
+          user.status !== userWithDefaults.status ||
+          user.year_level_name !== userWithDefaults.year_level_name ||
+          user.account_status !== userWithDefaults.account_status ||
+          user.enrollment_status !== userWithDefaults.enrollment_status ||
+          user.evaluation_status !== userWithDefaults.evaluation_status ||
+          user.nationality !== userWithDefaults.nationality ||
+          user.avatar_data !== userWithDefaults.avatar_data ||
+          user.avatar_url !== userWithDefaults.avatar_url ||
+          user.first_name !== userWithDefaults.first_name ||
+          user.last_name !== userWithDefaults.last_name ||
+          JSON.stringify(user) !== JSON.stringify(userWithDefaults);
+
+        if (hasChanged) {
+          setUser(userWithDefaults);
+          await AsyncStorage.setItem("user", JSON.stringify(userWithDefaults));
+        }
         return true;
+      } else if (data.message?.includes("deactivated")) {
+        await logout();
+        return false;
       }
       return false;
     } catch (error) {
-      console.error("Error refreshing user data:", error);
+      console.error("Error refreshing user data from database:", error);
       return false;
     }
   };

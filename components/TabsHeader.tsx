@@ -28,30 +28,54 @@ export const TabsHeader = ({
   const renderYearStatusBadge = () => {
     if (!user) return null;
 
-    const yearLevel = user.year_level_id ? String(user.year_level_id) : "";
-    const status = user.status || "";
-    const displayText = `${yearLevel} ${status}`.trim();
+    const rawYear = user.year_level_id ? String(user.year_level_id).trim() : "";
+    const rawStatus = (user.status || "").trim();
+    const yearLevelName = (user.year_level_name || "").trim();
+
+    const yearNumber = rawYear.replace(/[^0-9]/g, "");
 
     const isGraduating =
-      (yearLevel === "4" || yearLevel === "4th") &&
-      status.toLowerCase().includes("graduating");
+      yearNumber === "4" ||
+      rawStatus.toLowerCase().includes("graduating") ||
+      yearLevelName.toLowerCase().includes("graduating");
 
     if (isGraduating) {
+      const isReg = rawStatus.toLowerCase() === "regular";
+      const isIrreg = rawStatus.toLowerCase() === "irregular";
+      const subStatus = isReg ? " (Regular)" : isIrreg ? " (Irregular)" : "";
+
       return (
-        <View className="flex-row items-center mt-1 px-2 py-1 rounded-[20px] bg-blue-100">
-          <Text className="text-xs font-medium text-blue-800">Graduating</Text>
+        <View className="flex-row items-center mt-1 px-2 py-0.5 rounded-sm bg-blue-100 dark:bg-blue-900/40">
+          <Text className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+            Graduating{subStatus}
+          </Text>
         </View>
       );
     }
 
+    const isRegular = rawStatus.toLowerCase() === "regular";
+    const isIrregular = rawStatus.toLowerCase() === "irregular";
+
+    const badgeBg = isRegular
+      ? "bg-green-100 dark:bg-green-900/40"
+      : isIrregular
+      ? "bg-red-100 dark:bg-red-900/40"
+      : "bg-gray-100 dark:bg-gray-800";
+
+    const badgeTextColor = isRegular
+      ? "text-green-800 dark:text-green-300"
+      : isIrregular
+      ? "text-red-800 dark:text-red-300"
+      : "text-gray-800 dark:text-gray-300";
+
+    const yearPrefix = yearNumber ? `Year ${yearNumber}` : yearLevelName || "Year";
+    const fullText = `${yearPrefix} ${rawStatus}`.trim();
+
     return (
-      <View
-        className={`flex-row items-center mt-1 px-2 py-1 rounded-[20px] ${
-          status.toLowerCase() === "regular" ? "bg-green-100" : "bg-red-100"
-        }`}
-      >
-        <Text className="text-xs font-medium mr-1">Year</Text>
-        <Text className="text-xs font-medium">{displayText || "N/A"}</Text>
+      <View className={`flex-row items-center mt-1 px-2 py-0.5 rounded-sm ${badgeBg}`}>
+        <Text className={`text-xs font-semibold ${badgeTextColor}`}>
+          {fullText || "N/A"}
+        </Text>
       </View>
     );
   };
