@@ -104,8 +104,12 @@ export default function Home() {
   }, [user, authLoading]);
 
   const handleForceLogout = async () => {
-    await clearUser();
-    router.replace("/auth/login");
+    try {
+      await clearUser();
+      router.replace("/auth/login");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   if (authLoading || (!user && !authLoading)) return null;

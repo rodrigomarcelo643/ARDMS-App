@@ -53,7 +53,7 @@ const SLIDES = [
     color: "#0891b2",
     title: "Messaging",
     description:
-      "Communicate with admin, faculty, and Scretary in real-time. Persistent caching ensures your messages are always available, even on slow networks.",
+      "Communicate with admin, faculty, and Secretary in real-time. Persistent caching ensures your messages are always available, even on slow networks.",
   },
   {
     id: "5",
@@ -62,7 +62,7 @@ const SLIDES = [
     color: "#d97706",
     title: "Notifications & Calendar",
     description:
-      "Stay updated with school announcements and push notifications. Get reminders for pending files and requirements you still need to upload, plus academic calendar events aligned to Philippine time."
+      "Stay updated with school announcements and push notifications. Get reminders for pending files and requirements you still need to upload, plus academic calendar events."
   },
   {
     id: "6",

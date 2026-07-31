@@ -4,9 +4,12 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { API_BASE_URL } from "@/constants/Config";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNetworkBanner } from "@/contexts/NetworkContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNavigationMode } from "@/hooks/useNavigationMode";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import { registerForPushNotifications, showLocalNotification } from "@/services/notificationService";
+import { registerForPushNotificationsAsync, savePushTokenToServer } from "@/services/pushNotificationService";
 import { messageService } from "@/services/messageService";
 import axios from "axios";
 import { Audio } from "expo-av";
@@ -40,6 +43,7 @@ export default function TabLayout() {
   const segments = useSegments();
   const { theme } = useTheme();
   const { hasThreeButtonNav, insets } = useNavigationMode();
+  const { isBannerVisible, bannerHeight } = useNetworkBanner();
 
   // Theme Change
   const cardColor = useThemeColor({}, "card");
@@ -48,7 +52,7 @@ export default function TabLayout() {
   const { width } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(true);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [notificationCount, setNotificationCount] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [isFirstFetch, setIsFirstFetch] = useState(true);
@@ -60,7 +64,6 @@ export default function TabLayout() {
 
   const isWeb = Platform.OS === "web";
   const iconSize = 26;
-
   // Track header visibility
   const [showHeader, setShowHeader] = useState(true);
 
@@ -117,14 +120,30 @@ export default function TabLayout() {
     }
   };
 
-  // Fetch notification count
+  // Track known notification and announcement IDs to trigger local OS notifications when new items arrive
   const isFetchingNotification = useRef(false);
   const isFetchingMessage = useRef(false);
+  const isFetchingAnnouncement = useRef(false);
+
+  const knownNotificationIds = useRef<Set<string | number>>(new Set());
+  const knownAnnouncementIds = useRef<Set<string | number>>(new Set());
+  const isFirstNotificationFetch = useRef(true);
+  const isFirstAnnouncementFetch = useRef(true);
+  const isFirstMsgFetch = useRef(true);
+  const prevUnreadMsgCount = useRef(0);
 
   useEffect(() => {
     if (!user?.id) return;
 
-    const fetchNotificationCount = async () => {
+    // Register push token for OS remote push notifications on backend
+    registerForPushNotifications(Number(user.id)).catch(() => {});
+    registerForPushNotificationsAsync().then((token) => {
+      if (token && user?.id) {
+        savePushTokenToServer(String(user.id), token);
+      }
+    }).catch(() => {});
+
+    const fetchNotificationCheck = async () => {
       if (isFetchingNotification.current) return;
       isFetchingNotification.current = true;
 
@@ -132,7 +151,7 @@ export default function TabLayout() {
         const response = await axios.get(
           `${API_BASE_URL}/api/get_student_notifications.php?user_id=${user.id}`,
           {
-            timeout: 8000, // Slightly shorter timeout
+            timeout: 8000,
             headers: {
               "Content-Type": "application/json",
               Accept: "application/json",
@@ -141,74 +160,157 @@ export default function TabLayout() {
         );
 
         const data = response.data;
-        if (data.success) {
-          const unreadCount = data.notifications.filter(
-            (notification: any) => notification.status !== "read",
-          ).length;
-          setNotificationCount(unreadCount);
-          setPrevNotificationCount(unreadCount);
-          if (isFirstFetch) setIsFirstFetch(false);
+        if (data.success && Array.isArray(data.notifications)) {
+          const unreadNotifications = data.notifications.filter(
+            (n: { status?: string }) => n.status !== "read",
+          );
+          setNotificationCount(unreadNotifications.length);
+
+          if (isFirstNotificationFetch.current) {
+            // First load: store existing IDs without triggering notifications
+            data.notifications.forEach((n: { id: string | number }) => {
+              if (n.id) knownNotificationIds.current.add(String(n.id));
+            });
+            isFirstNotificationFetch.current = false;
+          } else {
+            // Subsequent loads: find newly arrived notifications
+            let hasNewItem = false;
+            for (const notif of data.notifications) {
+              const idStr = String(notif.id);
+              if (notif.id && !knownNotificationIds.current.has(idStr)) {
+                knownNotificationIds.current.add(idStr);
+                hasNewItem = true;
+
+                // Trigger OS Device Notification
+                showLocalNotification(
+                  notif.title || "New Notification",
+                  notif.message || "You have a new notification from MedSIS",
+                  { type: notif.type || "notification", id: notif.id },
+                );
+              }
+            }
+            if (hasNewItem) {
+              playNotificationSound();
+            }
+          }
         }
-      } catch (error: any) {
-        // Detailed error logging
-        const status = error.response?.status;
-        const msg = error.message;
+      } catch (error: unknown) {
+        const err = error as { response?: { status?: number }; message?: string };
         console.warn(
-          `[Notification Fetch] ${msg} ${status ? `(Status: ${status})` : ""} - Check if ${API_BASE_URL} is reachable.`,
+          `[Notification Check] ${err.message || "Error"} ${err.response?.status ? `(Status: ${err.response.status})` : ""}`,
         );
       } finally {
         isFetchingNotification.current = false;
       }
     };
 
-    const fetchMessageCount = async () => {
+    const fetchAnnouncementCheck = async () => {
+      if (isFetchingAnnouncement.current) return;
+      isFetchingAnnouncement.current = true;
+
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/api/get_student_announcements.php`,
+          {
+            params: {
+              user_id: user.id,
+              year_level: user.year_level_id || "all",
+            },
+            timeout: 8000,
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+          },
+        );
+
+        const data = response.data;
+        if (data.success && Array.isArray(data.announcements)) {
+          if (isFirstAnnouncementFetch.current) {
+            // First load: store existing IDs without triggering notifications
+            data.announcements.forEach((a: { id: string | number }) => {
+              if (a.id) knownAnnouncementIds.current.add(String(a.id));
+            });
+            isFirstAnnouncementFetch.current = false;
+          } else {
+            // Subsequent loads: find newly posted announcements
+            let hasNewAnnouncement = false;
+            for (const ann of data.announcements) {
+              const idStr = String(ann.id);
+              if (ann.id && !knownAnnouncementIds.current.has(idStr)) {
+                knownAnnouncementIds.current.add(idStr);
+                hasNewAnnouncement = true;
+
+                // Trigger OS Device Notification for New Announcement
+                const titleText = ann.title ? `📢 ${ann.title}` : "📢 New Announcement";
+                const bodyText = ann.content || ann.message || "A new announcement has been posted.";
+
+                showLocalNotification(titleText, bodyText, {
+                  type: "announcement",
+                  id: ann.id,
+                });
+              }
+            }
+            if (hasNewAnnouncement) {
+              playNotificationSound();
+            }
+          }
+        }
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        console.warn(`[Announcement Check Error]: ${err.message || "Error"}`);
+      } finally {
+        isFetchingAnnouncement.current = false;
+      }
+    };
+
+    const fetchMessageCountCheck = async () => {
       if (isFetchingMessage.current) return;
       isFetchingMessage.current = true;
 
       try {
         const unreadMessages = await messageService.getUnreadCount(user.id);
         setMessageCount(unreadMessages);
-        setPrevMessageCount(unreadMessages);
-        if (isFirstMessageFetch) setIsFirstMessageFetch(false);
-      } catch (error: any) {
-        console.warn(`[Message Count Fetch] ${error.message}`);
+
+        if (isFirstMsgFetch.current) {
+          prevUnreadMsgCount.current = unreadMessages;
+          isFirstMsgFetch.current = false;
+        } else {
+          if (unreadMessages > prevUnreadMsgCount.current) {
+            playNotificationSound();
+            showLocalNotification(
+              "New Message",
+              `You have ${unreadMessages} unread message(s)`,
+              { type: "message" },
+            );
+          }
+          prevUnreadMsgCount.current = unreadMessages;
+        }
+      } catch (error: unknown) {
+        const err = error as { message?: string };
+        console.warn(`[Message Count Fetch] ${err.message || "Error"}`);
       } finally {
         isFetchingMessage.current = false;
       }
     };
 
-    fetchNotificationCount();
-    fetchMessageCount();
+    // Initial check
+    fetchNotificationCheck();
+    fetchAnnouncementCheck();
+    fetchMessageCountCheck();
+    refreshUser();
 
-    // Set up interval to periodically check for new notifications and messages
+    // Poll every 5 seconds for live notifications, announcements, and messages
     const intervalId = setInterval(() => {
-      fetchNotificationCount();
-      fetchMessageCount();
-    }, 5000); // Reduced frequency to 5 seconds
+      fetchNotificationCheck();
+      fetchAnnouncementCheck();
+      fetchMessageCountCheck();
+      refreshUser();
+    }, 5000);
 
     return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
-
-  // Separate effect to handle sound playing when counts increase
-  useEffect(() => {
-    // Only play sound if either count increased (not on first fetch)
-    if (!isFirstFetch && !isFirstMessageFetch) {
-      const notificationIncreased = notificationCount > prevNotificationCount;
-      const messageIncreased = messageCount > prevMessageCount;
-
-      if (notificationIncreased || messageIncreased) {
-        playNotificationSound();
-      }
-    }
-  }, [
-    notificationCount,
-    messageCount,
-    isFirstFetch,
-    isFirstMessageFetch,
-    prevNotificationCount,
-    prevMessageCount,
-  ]);
 
   useEffect(() => {
     const currentRoute = segments[segments.length - 1]; // get last active tab
@@ -253,8 +355,8 @@ export default function TabLayout() {
 
   return (
     <GestureHandlerRootView className="flex-1">
-      <View className="flex-1">
-        {!isWeb && (
+      <View className="flex-1" style={isBannerVisible ? { paddingTop: bannerHeight } : undefined}>
+        {!isWeb && !isBannerVisible && (
           <View
             style={{ height: StatusBar.currentHeight, backgroundColor: "#fff" }}
           />
