@@ -177,7 +177,7 @@ const NotificationsScreen = () => {
 
     setPollingInterval(interval);
     return interval;
-  }, [user]);
+  }, [user?.id]);
 
   // Load more notifications when reaching the end
   const loadMoreNotifications = () => {
@@ -259,7 +259,7 @@ const NotificationsScreen = () => {
         clearInterval(interval);
       };
     }
-  }, [user]);
+  }, [user?.id]);
 
   // Update displayed notifications when displayLimit changes
   useEffect(() => {
@@ -274,7 +274,7 @@ const NotificationsScreen = () => {
         fetchNotifications();
       }
       return () => { };
-    }, [user])
+    }, [user?.id])
   );
 
   const onRefresh = () => {
