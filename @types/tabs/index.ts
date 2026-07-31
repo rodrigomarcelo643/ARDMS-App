@@ -102,6 +102,7 @@ export interface UploadedFile {
   id: string;
   name: string;
   size: number;
+  file_path: string;
   uri: string;
   type: 'image' | 'pdf' | 'word' | 'document';
   mimeType: string;
