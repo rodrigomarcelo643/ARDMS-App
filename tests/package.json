@@ -1,7 +1,7 @@
 {
-  "name": "@ARDMS/tests",
+  "name": "@MSIS/tests",
   "version": "1.0.0",
-  "description": "Test suite for ARDMS App",
+  "description": "Test suite for MSIS App",
   "main": "__tests__/index.ts",
   "scripts": {
     "test": "node test-runner.js",
@@ -10,10 +10,10 @@
   },
   "keywords": [
     "tests",
-    "ARDMS",
+    "MSIS ",
     "react-native"
   ],
-  "author": "ARDMS Team",
+  "author": "MSIS Team",
   "license": "MIT",
   "dependencies": {
     "expo": "~53.0.27",

@@ -18,7 +18,8 @@ function analyzeRealFiles() {
     { path: 'app/(tabs)/home.tsx', category: 'Home Screen' },
     { path: 'app/(tabs)/folder.tsx', category: 'Blur Check' },
     { path: 'app/(tabs)/profile.tsx', category: 'Profile' },
-    { path: 'services/messageService.ts', category: 'Services' },
+    { path: 'services/imageAnalysisService.ts', category: 'Services' },
+    { path: 'services/nmatExtractionService.ts', category: 'Services' },
     { path: 'services/notificationService.ts', category: 'Services' },
     { path: 'contexts/AuthContext.tsx', category: 'Services' }
   ];
@@ -78,7 +79,7 @@ function analyzeFileContent(content, category, filePath) {
 
 // Real test runner analyzing actual files
 function runAllTests() {
-  console.log('🧪 Running ARDMS App Test Suite on Real Files...\n');
+  console.log(' Running MSIS App Test Suite on Real Files...\n');
   
   // Get results from real file analysis
   const realFileResults = analyzeRealFiles();
@@ -104,7 +105,7 @@ function generateTestReport() {
   const failed = results.filter(r => r.status === 'FAILED').length;
   const total = results.length;
 
-  console.log('📊 TEST RESULTS SUMMARY');
+  console.log('TEST RESULTS SUMMARY');
   console.log('========================');
   console.log(`Total Tests: ${total}`);
   console.log(`✅ Passed: ${passed}`);
@@ -119,7 +120,7 @@ function generateTestReport() {
     const categoryPassed = categoryTests.filter(r => r.status === 'PASSED').length;
     const categoryFailed = categoryTests.filter(r => r.status === 'FAILED').length;
     
-    console.log(`📁 ${category}`);
+    console.log(`${category}`);
     console.log(`   ✅ Passed: ${categoryPassed}`);
     console.log(`   ❌ Failed: ${categoryFailed}`);
     
@@ -131,7 +132,7 @@ function generateTestReport() {
   });
 
   if (failed > 0) {
-    console.log('🔧 FAILED TESTS REQUIRE ATTENTION:');
+    console.log('FAILED TESTS REQUIRE ATTENTION:');
     results.filter(r => r.status === 'FAILED').forEach(test => {
       console.log(`❌ ${test.category} - ${test.testName}: ${test.description}`);
     });
@@ -139,13 +140,13 @@ function generateTestReport() {
 
   // Overall Test Summary
   console.log('\n' + '='.repeat(50));
-  console.log('🎯 OVERALL TEST RESULTS');
+  console.log('OVERALL TEST RESULTS');
   console.log('='.repeat(50));
-  console.log(`📊 TOTAL TESTS: ${total}`);
+  console.log(`TOTAL TESTS: ${total}`);
   console.log(`✅ PASSED: ${passed}`);
   console.log(`❌ FAILED: ${failed}`);
-  console.log(`🔍 TYPE ERRORS: ${results.filter(r => r.category === 'Type Safety' && r.status === 'FAILED').length}`);
-  console.log(`🎯 SUCCESS RATE: ${((passed / total) * 100).toFixed(1)}%`);
+  console.log(`TYPE ERRORS: ${results.filter(r => r.category === 'Type Safety' && r.status === 'FAILED').length}`);
+  console.log(`SUCCESS RATE: ${((passed / total) * 100).toFixed(1)}%`);
   console.log('='.repeat(50));
   
   if (failed === 0) {
@@ -159,7 +160,7 @@ function generateTestReport() {
 const { checkTypeErrors } = require('./utils/typescript-checker.js');
 
 function runWithTypeChecking() {
-  console.log('🧪 Running ARDMS App Test Suite with Type Validation..\n');
+  console.log('🧪 Running MSIS App Test Suite with Type Validation..\n');
   
   // Run type checking first
   const typeCheckResult = checkTypeErrors();
