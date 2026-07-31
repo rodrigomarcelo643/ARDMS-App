@@ -140,7 +140,7 @@ const LearningMaterialsScreen: React.FC = () => {
   // Load materials on component mount
   useEffect(() => {
     fetchLearningMaterials();
-  }, [user]);
+  }, [user?.id]);
 
   // Handle pull-to-refresh
   const onRefresh = () => {
