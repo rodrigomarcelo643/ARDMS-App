@@ -135,14 +135,15 @@ export default function ProfileScreen() {
 
     if (showLoading) setIsLoading(true);
     try {
+      const requestBody = JSON.stringify({ user_id: uid, live_fetch: forceLiveFetch || !hasInitiallyFetched });
       const response = await fetch(`${API_URL}/get_user_data.php`, {
         method: 'POST',
-        body: JSON.stringify({ user_id: uid, live_fetch: forceLiveFetch || !hasInitiallyFetched }),
+        body: requestBody,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-      });
+      }).then(res => res).catch(err => { throw err; });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -162,8 +163,9 @@ export default function ProfileScreen() {
         await clearUser();
         router.replace("/auth/login");
       }
-    } catch (error) {
-      if ((error as any).response?.status === 403 || (error as any).response?.status === 404) {
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number } };
+      if (err.response?.status === 403 || err.response?.status === 404) {
         await clearUser();
         router.replace("/auth/login");
       }
@@ -177,7 +179,7 @@ export default function ProfileScreen() {
       clearUser();
       router.replace("/auth/login");
     } else {
-      setUserData(user as any);
+      setUserData(user as unknown as UserData);
       if (!hasInitiallyFetched && !isEditing) fetchUserData(true, true);
     }
   }, [user, hasInitiallyFetched, fetchUserData, isEditing, clearUser, router]);
@@ -244,7 +246,7 @@ export default function ProfileScreen() {
 
   const pickImage = async (useCamera = false) => {
     try {
-      const options: any = { mediaTypes: 'images', allowsEditing: true, aspect: [1, 1], quality: 0.8 };
+      const options = { mediaTypes: 'images' as const, allowsEditing: true, aspect: [1, 1] as [number, number], quality: 0.8 };
       const result = useCamera ? await launchCameraAsync(options) : await launchImageLibraryAsync(options);
       if (!result.canceled) {
         setSelectedImage(result.assets[0]);
@@ -297,7 +299,7 @@ export default function ProfileScreen() {
         const filename = selectedImage.uri.split('/').pop();
         const match = /\.(\w+)$/.exec(filename || '');
         const type = match ? `image/${match[1]}` : 'image/jpeg';
-        formData.append('avatar', { uri: selectedImage.uri, name: filename, type } as any);
+        formData.append('avatar', { uri: selectedImage.uri, name: filename, type } as unknown as Blob);
       }
 
       console.log("Updating profile at:", `${API_URL}/update_profile_student.php`);
@@ -309,7 +311,7 @@ export default function ProfileScreen() {
         headers: {
           'Accept': 'application/json',
         },
-      });
+      }).then(res => res).catch(err => { throw err; });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -399,7 +401,7 @@ export default function ProfileScreen() {
 
             <Section title="Academic Information" icon={GraduationCap} isExpanded={expandedSections.academic} onToggle={() => toggleSection("academic")} cardColor={cardColor} textColor={textColor}>
               <InfoItem icon={BookOpen} label="Program" value={userData?.program} theme={theme} borderColor={borderColor} mutedColor={mutedColor} textColor={textColor} />
-              <InfoItem icon={School} label="Year Level" value={userData?.year_level_name || userData?.year_level_id?.toString() || "Not specified"} theme={theme} borderColor={borderColor} mutedColor={mutedColor} textColor={textColor} />
+              <InfoItem icon={School} label="Year Level" value={userData?.year_level_name || (userData?.year_level_id ? String(userData.year_level_id) : "Not specified")} theme={theme} borderColor={borderColor} mutedColor={mutedColor} textColor={textColor} />
               <InfoItem icon={Calendar} label="Curriculum" value={userData?.academic_year} theme={theme} borderColor={borderColor} mutedColor={mutedColor} textColor={textColor} />
             </Section>
 

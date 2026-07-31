@@ -109,8 +109,9 @@ const LoginScreen = () => {
         Toast.show({ type: "error", text1: "Login Failed", text2: result.message });
         setLoginState(prev => ({ ...prev, loading: false, showLoginLoading: false }));
       }
-    } catch (e: any) {
-      Toast.show({ type: "error", text1: "Request Error", text2: e.message });
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : "Request failed";
+      Toast.show({ type: "error", text1: "Request Error", text2: err });
       setLoginState(prev => ({ ...prev, loading: false, showLoginLoading: false }));
     }
   };
@@ -151,7 +152,7 @@ const LoginScreen = () => {
               <LogIn size={17} color="white" />
             </TouchableOpacity>
 
-            <TouchableOpacity className="mt-3 items-center" onPress={() => router.navigate("/auth/forgot-password" as any)}>
+            <TouchableOpacity className="mt-3 items-center" onPress={() => router.navigate("/auth/forgot-password" as never)}>
               <Text className="text-[#af1616] text-[15px] font-medium">Forgot password?</Text>
             </TouchableOpacity>
           </View>

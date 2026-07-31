@@ -8,10 +8,12 @@ import {
     ActivityIndicator,
     Animated,
     KeyboardAvoidingView,
+    NativeSyntheticEvent,
     Platform,
     ScrollView,
     Text,
     TextInput,
+    TextInputKeyPressEventData,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -95,7 +97,7 @@ const OTPVerification = () => {
     if (value.length > 1) handleOtpPaste(value);
   };
 
-  const handleKeyPress = (e: any, index: number) => {
+  const handleKeyPress = (e: NativeSyntheticEvent<TextInputKeyPressEventData>, index: number) => {
     if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) inputs.current[index - 1]?.focus();
   };
 
@@ -127,8 +129,9 @@ const OTPVerification = () => {
         Toast.show({ type: "error", text1: "Error", text2: res.data.message });
         setState(prev => ({ ...prev, loading: false }));
       }
-    } catch (e: any) {
-      Toast.show({ type: "error", text1: "Error", text2: e.message });
+    } catch (e: unknown) {
+      const errorMsg = e instanceof Error ? e.message : "Failed to resend OTP";
+      Toast.show({ type: "error", text1: "Error", text2: errorMsg });
       setState(prev => ({ ...prev, loading: false }));
     }
   };
@@ -151,8 +154,9 @@ const OTPVerification = () => {
           router.replace("/home");
         } else router.back();
       } else Toast.show({ type: "error", text1: "Error", text2: res.data.message });
-    } catch (e: any) {
-      Toast.show({ type: "error", text1: "Error", text2: e.message });
+    } catch (e: unknown) {
+      const errorMsg = e instanceof Error ? e.message : "Verification failed";
+      Toast.show({ type: "error", text1: "Error", text2: errorMsg });
     } finally { setState(prev => ({ ...prev, loading: false })); }
   };
 

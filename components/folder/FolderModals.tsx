@@ -303,3 +303,115 @@ export const BlurErrorModal: React.FC<{
     </View>
   </Modal>
 );
+
+// --- NMAT Result Extraction Modal ---
+interface NmatResultModalProps {
+  visible: boolean;
+  success: boolean;
+  found: boolean;
+  percentileRank: number | null;
+  reason?: string;
+  onClose: () => void;
+  onConfirmUpload?: () => void;
+}
+
+export const NmatResultModal: React.FC<NmatResultModalProps> = ({
+  visible,
+  success,
+  found,
+  percentileRank,
+  reason,
+  onClose,
+  onConfirmUpload,
+}) => {
+  const isPassed = success && found && percentileRank !== null && percentileRank >= 40;
+  const isFailed = success && found && percentileRank !== null && percentileRank < 40;
+  const isUnreadable = !success || !found || percentileRank === null;
+
+  return (
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+      <View className="flex-1 bg-black/50 justify-center items-center p-4">
+        <View className="bg-white rounded-xl p-6 w-full max-w-md">
+          {/* Top Icon Badge */}
+          <View className="items-center mb-3">
+            <View className={isPassed ? "bg-green-100 p-4 rounded-full" : "bg-red-100 p-4 rounded-full"}>
+              {isPassed ? (
+                <Check size={36} color="#16a34a" />
+              ) : (
+                <AlertTriangle size={36} color="#dc2626" />
+              )}
+            </View>
+          </View>
+
+          {/* Title & Status Badge */}
+          <Text className="text-xl font-bold text-gray-800 text-center mb-1">
+            {isPassed ? "NMAT Verification Passed" : isFailed ? "NMAT Requirement Not Met" : "Extraction Failed"}
+          </Text>
+          <View className="flex-row justify-center mb-4">
+            <View className={`px-3 py-1 rounded-full ${isPassed ? "bg-green-100" : "bg-red-100"}`}>
+              <Text className={`text-xs font-bold ${isPassed ? "text-green-800" : "text-red-800"}`}>
+                {isPassed ? "✓ ACCEPTED (≥ 40%)" : isFailed ? "✕ REJECTED (< 40%)" : "✕ UNREADABLE DOCUMENT"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Percentile Rank Display Card */}
+          {!isUnreadable && percentileRank !== null && (
+            <View className={`rounded-lg p-4 mb-4 ${isPassed ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+              <Text className="text-xs font-medium text-gray-600 text-center mb-1">EXTRACTED PERCENTILE RANK</Text>
+              <Text className={`text-4xl font-extrabold text-center mb-2 ${isPassed ? "text-green-600" : "text-red-600"}`}>
+                {percentileRank}%
+              </Text>
+
+              {/* Score Bar */}
+              <View className="w-full bg-gray-200 rounded-full h-3 mb-2 relative overflow-hidden">
+                <View
+                  className={isPassed ? "bg-green-500 h-3 rounded-full" : "bg-red-500 h-3 rounded-full"}
+                  style={{ width: `${Math.min(100, Math.max(0, percentileRank))}%` }}
+                />
+              </View>
+              <View className="flex-row justify-between">
+                <Text className="text-[10px] text-gray-500">0%</Text>
+                <Text className="text-[10px] font-bold text-gray-700">Required: 40%</Text>
+                <Text className="text-[10px] text-gray-500">100%</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Description / Reason Box */}
+          <View className={`rounded-lg p-3 mb-5 ${isPassed ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+            <Text className={`text-xs text-center leading-4 font-medium ${isPassed ? "text-green-900" : "text-red-900"}`}>
+              {isPassed
+                ? `Your NMAT percentile rank of ${percentileRank}% meets the required 40% passing rate threshold.`
+                : isFailed
+                ? `Your extracted NMAT percentile rank of ${percentileRank}% is below the required 40% passing threshold.`
+                : reason || "Unable to extract NMAT percentile rank from document. Please upload a clear copy."}
+            </Text>
+          </View>
+
+          {/* Action Buttons */}
+          {isPassed ? (
+            <View className="flex-row gap-3">
+              <TouchableOpacity className="flex-1 bg-gray-200 py-3 rounded-lg" onPress={onClose}>
+                <Text className="text-gray-800 text-center font-medium">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 bg-green-600 py-3 rounded-lg"
+                onPress={() => {
+                  if (onConfirmUpload) onConfirmUpload();
+                }}
+              >
+                <Text className="text-white text-center font-bold">Upload Document</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity className="bg-[#be2e2e] py-3 rounded-lg" onPress={onClose}>
+              <Text className="text-white text-center font-medium">Try Another Document</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+};
+

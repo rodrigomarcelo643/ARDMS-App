@@ -244,11 +244,12 @@ export default function MessagesScreen() {
     const updateActiveSession = async () => {
       if (user?.id) {
         try {
+          const fetchBody = JSON.stringify({ update_session: true, user_id: user.id });
           await fetch(`${API_BASE_URL}/api/login.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ update_session: true, user_id: user.id })
-          });
+            body: fetchBody,
+          }).then((res) => res.json()).catch((err) => console.error('Error updating session:', err));
         } catch (error) {
           console.error('Error updating session:', error);
         }
@@ -283,11 +284,12 @@ export default function MessagesScreen() {
   const updateSessionOnInteraction = async () => {
     if (user?.id) {
       try {
+        const fetchBody = JSON.stringify({ update_session: true, user_id: user.id });
         await fetch(`${API_BASE_URL}/api/login.php`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ update_session: true, user_id: user.id })
-        });
+          body: fetchBody,
+        }).then((res) => res.json()).catch((err) => console.error('Error updating session on interaction:', err));
       } catch (error) {
         console.error('Error updating session on interaction:', error);
       }

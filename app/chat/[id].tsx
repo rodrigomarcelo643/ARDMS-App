@@ -132,7 +132,7 @@ export default function ChatScreen() {
 
   // Polling Effect
   useEffect(() => {
-    let interval: any;
+    let interval: ReturnType<typeof setInterval>;
     const startPolling = () => {
       interval = setInterval(async () => {
         if (isMountedRef.current && !editingMessage && !selectedMessage) {
@@ -188,7 +188,7 @@ export default function ChatScreen() {
       );
       if (response.data.success) {
         const newMessages = (response.data.messages || []).sort(
-          (a: any, b: any) =>
+          (a: Message, b: Message) =>
             new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         );
         setMessages((prev) => {
@@ -196,7 +196,7 @@ export default function ChatScreen() {
             ? [
                 ...prev,
                 ...newMessages.filter(
-                  (m: any) => !prev.find((p) => p.id === m.id),
+                  (m: Message) => !prev.find((p) => p.id === m.id),
                 ),
               ]
             : newMessages;
@@ -236,9 +236,9 @@ export default function ChatScreen() {
           const existing = prev.filter((m) => !m.id.startsWith("temp_"));
           const ids = new Set(existing.map((m) => m.id));
           const updated = existing.map(
-            (m) => incoming.find((i: any) => i.id === m.id) || m,
+            (m) => incoming.find((i: Message) => i.id === m.id) || m,
           );
-          const brandNew = incoming.filter((i: any) => !ids.has(i.id));
+          const brandNew = incoming.filter((i: Message) => !ids.has(i.id));
           const combined = [...temp, ...brandNew, ...updated].sort(
             (a, b) =>
               new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
@@ -330,7 +330,8 @@ export default function ChatScreen() {
           },
           ...prev,
         ]);
-        const response = await fetch(result.assets[0].uri);
+        const response = await fetch(result.assets[0].uri).catch(() => null);
+        if (!response) return;
         const blob = await response.blob();
         const reader = new FileReader();
         reader.readAsDataURL(blob);
@@ -383,7 +384,8 @@ export default function ChatScreen() {
           },
           ...prev,
         ]);
-        const response = await fetch(result.assets[0].uri);
+        const response = await fetch(result.assets[0].uri).catch(() => null);
+        if (!response) return;
         const blob = await response.blob();
         const reader = new FileReader();
         reader.readAsDataURL(blob);

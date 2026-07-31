@@ -48,10 +48,11 @@ export const analyzeImage = async (
       { headers: { 'Content-Type': 'application/json' } }
     );
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } }; message?: string };
     return {
       success: false,
-      message: error.response?.data?.message || error.message || 'Analysis failed'
+      message: err.response?.data?.message || err.message || 'Analysis failed'
     };
   }
 };
@@ -70,10 +71,11 @@ export const batchAnalyzeImages = async (
       { headers: { 'Content-Type': 'application/json' } }
     );
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: { message?: string } }; message?: string };
     return {
       success: false,
-      message: error.response?.data?.message || error.message || 'Batch analysis failed'
+      message: err.response?.data?.message || err.message || 'Batch analysis failed'
     };
   }
 };
