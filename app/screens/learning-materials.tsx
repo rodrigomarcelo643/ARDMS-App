@@ -20,6 +20,7 @@ import { MaterialSkeletonLoader } from '@/components/learning-materials/Material
 import { SubjectDropdown } from '@/components/learning-materials/SubjectDropdown';
 import { MaterialSearchBar } from '@/components/learning-materials/MaterialSearchBar';
 import { MaterialEmptyState } from '@/components/learning-materials/MaterialEmptyState';
+import ErrorDisplay, { detectErrorType } from '@/components/ui/ErrorDisplay';
 import { MaterialCard } from '@/components/learning-materials/MaterialCard';
 import { useDispatch, useSelector } from "@/redux/store";
 import { 
@@ -243,23 +244,18 @@ const LearningMaterialsScreen: React.FC = () => {
 
   if (error) {
     return (
-      <View className="flex-1 bg-gray-50 pt-10">
-        <View className="flex-row items-center px-4 py-4 bg-white border-b border-gray-200">
+      <View className="flex-1 pt-10" style={{ backgroundColor }}>
+        <View className="flex-row items-center px-4 py-4 border-b border-gray-200" style={{ backgroundColor: cardColor }}>
           <TouchableOpacity onPress={() => router.back()} className="mr-3">
-            <ChevronLeft size={24} color="#800000" />
+            <ChevronLeft size={24} color={textColor} />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-[#af1616]-800">Learning Materials</Text>
+          <Text className="text-xl font-bold" style={{ color: textColor }}>Learning Materials</Text>
         </View>
-        <View className="flex-1 justify-center items-center p-5">
-          <BookOpen size={48} color="#800000" />
-          <Text className="mt-4 text-[#af1616]-700 text-center">{error}</Text>
-          <TouchableOpacity 
-            className="mt-4 px-6 py-3 bg-[#af1616]-600 rounded-lg"
-            onPress={fetchLearningMaterials}
-          >
-            <Text className="text-white font-semibold">Try Again</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorDisplay
+          type={detectErrorType(error)}
+          message={error}
+          onRetry={fetchLearningMaterials}
+        />
       </View>
     );
   }

@@ -6,6 +6,7 @@ import {
 } from "@/components/announcements/AnnouncementLoaders";
 import { EmptyState } from "@/components/announcements/EmptyState";
 import { PriorityDropdown } from "@/components/announcements/PriorityDropdown";
+import ErrorDisplay, { detectErrorType } from "@/components/ui/ErrorDisplay";
 import { API_BASE_URL } from "@/constants/Config";
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
@@ -18,7 +19,6 @@ import { useDispatch, useSelector } from "@/redux/store";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import {
-  AlertTriangle,
   ArrowUp,
   ChevronDown,
   ChevronLeft,
@@ -272,10 +272,10 @@ const AnnouncementsScreen: React.FC = () => {
 
   if (error) {
     return (
-      <View className="flex-1 bg-gray-50 pt-10" style={{ backgroundColor }}>
+      <View className="flex-1" style={{ backgroundColor }}>
         <View
-          className="flex-row items-center px-4 py-4 bg-white border-b border-gray-200"
-          style={{ backgroundColor: cardColor }}
+          className="flex-row items-center px-4 py-4 border-b"
+          style={{ backgroundColor: cardColor, borderBottomColor: "#e5e7eb" }}
         >
           <TouchableOpacity onPress={() => router.back()} className="mr-3">
             <ChevronLeft size={24} color={textColor} />
@@ -284,18 +284,11 @@ const AnnouncementsScreen: React.FC = () => {
             Announcements
           </Text>
         </View>
-        <View className="flex-1 justify-center items-center p-5">
-          <AlertTriangle size={48} color="#af1616" />
-          <Text className="mt-4 text-center" style={{ color: textColor }}>
-            {error}
-          </Text>
-          <TouchableOpacity
-            className="mt-4 px-6 py-3 bg-[#af1616] rounded-lg"
-            onPress={fetchAnnouncements}
-          >
-            <Text className="text-white font-semibold">Try Again</Text>
-          </TouchableOpacity>
-        </View>
+        <ErrorDisplay
+          type={detectErrorType(error)}
+          message={error}
+          onRetry={fetchAnnouncements}
+        />
       </View>
     );
   }

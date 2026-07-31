@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Notifications } from '@/@types/notifications';
+import ErrorDisplay, { detectErrorType } from '@/components/ui/ErrorDisplay';
 
 
 const API_URL = `${API_BASE_URL}/api`;
@@ -62,6 +63,7 @@ const NotificationsScreen = () => {
   const [notifications, setNotifications] = useState<Notifications[]>([]);
   const [displayedNotifications, setDisplayedNotifications] = useState<Notifications[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [clearAllModalVisible, setClearAllModalVisible] = useState(false);
   const [markAllReadModalVisible, setMarkAllReadModalVisible] = useState(false);
@@ -101,8 +103,8 @@ const NotificationsScreen = () => {
         return;
       }
 
-      // Only show loading indicators if not silent
       if (!silent) {
+        setError(null);
         if (loadMore) {
           setLoadingMore(true);
         } else {
@@ -119,6 +121,7 @@ const NotificationsScreen = () => {
       });
 
       if (response.data.success) {
+        setError(null);
         // Transform API data
         const transformedNotifications = response.data.notifications.map((notif: any) => ({
           id: notif.id,
@@ -145,16 +148,13 @@ const NotificationsScreen = () => {
         // Check for more notifications
         setHasMoreNotifications(transformedNotifications.length > displayLimit);
       } else if (!silent) {
-        Alert.alert('Error', response.data.message || 'Failed to fetch notifications');
+        setError(response.data.message || 'Failed to fetch notifications');
       }
-    } catch (error: any) {
-      console.error('Error fetching notifications:', error);
-      if (error.response) {
-        console.error('Server error:', error.response.status, error.response.data);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-      } else {
-        console.error('Error:', error.message);
+    } catch (err: any) {
+      console.error('Error fetching notifications:', err);
+      const errMsg = err?.message || 'Failed to fetch notifications';
+      if (!silent) {
+        setError(errMsg);
       }
     } finally {
       if (!silent) {
@@ -510,6 +510,29 @@ const NotificationsScreen = () => {
             <NotificationSkeleton key={item} />
           ))}
         </ScrollView>
+      </View>
+    );
+  }
+
+  if (error && notifications.length === 0) {
+    return (
+      <View className="flex-1 bg-white dark:bg-gray-900" style={{ backgroundColor }}>
+        <View className="pt-[50px] px-5 pb-4 border-b border-gray-200" style={{ backgroundColor: cardColor }}>
+          <View className="flex-row items-center">
+            <TouchableOpacity onPress={() => navigation.goBack()} className="p-2 -ml-2 mr-2">
+              <ChevronLeft size={24} color={textColor} />
+            </TouchableOpacity>
+            <Text className="text-2xl font-bold" style={{ color: textColor }}>Notifications</Text>
+          </View>
+        </View>
+        <ErrorDisplay
+          type={detectErrorType(error)}
+          message={error}
+          onRetry={() => {
+            setError(null);
+            fetchNotifications();
+          }}
+        />
       </View>
     );
   }

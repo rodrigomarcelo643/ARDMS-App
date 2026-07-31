@@ -19,6 +19,7 @@ import { DayView } from '@/components/calendar/DayView';
 import { EventModal } from '@/components/calendar/EventModal';
 import { useDispatch, useSelector } from "@/redux/store";
 import { setCalendarEvents, setCalendarLoading, setCalendarError } from "@/redux/actions";
+import ErrorDisplay, { detectErrorType } from '@/components/ui/ErrorDisplay';
 
 export default function Calendar() {
   // Theme Change 
@@ -198,15 +199,12 @@ export default function Calendar() {
   // Render error state
   if (error) {
     return (
-      <View className="flex-1 justify-center items-center p-8" style={{backgroundColor}}>
-        <Text className="text-lg mb-4 text-center" style={{color: '#EF4444'}}>{error}</Text>
-        <TouchableOpacity 
-          className="px-4 py-2 rounded-md"
-          style={{backgroundColor: '#3B82F6'}}
-          onPress={() => fetchEvents()}
-        >
-          <Text className="text-white">Try Again</Text>
-        </TouchableOpacity>
+      <View className="flex-1" style={{ backgroundColor }}>
+        <ErrorDisplay
+          type={detectErrorType(error)}
+          message={error}
+          onRetry={() => fetchEvents()}
+        />
       </View>
     );
   }

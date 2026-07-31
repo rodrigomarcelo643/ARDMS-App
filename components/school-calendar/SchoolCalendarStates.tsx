@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import ErrorDisplay, { detectErrorType } from '@/components/ui/ErrorDisplay';
 import { Ionicons } from '@expo/vector-icons';
 import { ChevronLeft } from 'lucide-react-native';
+import React from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 export const SkeletonLoader = ({ backgroundColor, cardColor, loadColor }: { backgroundColor: string, cardColor: string, loadColor: string }) => {
   return (
@@ -25,24 +26,12 @@ export const SkeletonLoader = ({ backgroundColor, cardColor, loadColor }: { back
 };
 
 export const ErrorState = ({ error, onRetry }: { error: string | null, onRetry: () => void }) => (
-  <View className="flex-1 justify-center items-center p-5 bg-gray-100">
-    <Ionicons
-      name="alert-circle"
-      size={48}
-      color="#dc2626"
-      className="mb-4"
+  <View className="flex-1 bg-gray-100">
+    <ErrorDisplay
+      type={error ? detectErrorType(error) : 'generic'}
+      message={error || 'Failed to load calendar data'}
+      onRetry={onRetry}
     />
-    <Text className="text-gray-600 mb-2 text-center">
-      Failed to load calendar data
-    </Text>
-    <Text className="text-gray-500 mb-4 text-center text-sm">{error}</Text>
-    <TouchableOpacity
-      onPress={onRetry}
-      className="bg-[#af1616] px-4 py-2 rounded flex-row items-center"
-    >
-      <Ionicons name="refresh" size={16} color="white" className="mr-2" />
-      <Text className="text-white">Try Again</Text>
-    </TouchableOpacity>
   </View>
 );
 

@@ -1,11 +1,18 @@
-import { API_BASE_URL, ML_API_BASE_URL } from '@/constants/Config';
+import { API_BASE_URL, ML_API_BASE_URL, EXPO_OPENAI_API_KEY } from '@/constants/Config';
+import { extractNmatPercentileFromImage } from '@/services/nmatExtractionService';
+
+export const isNmatRequirement = (reqName: string): boolean => {
+  if (!reqName) return false;
+  const lower = reqName.toLowerCase();
+  return lower.includes('nmat') || lower.includes('percentile rank') || lower.includes('percentile');
+};
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import axios from "axios";
-import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
-import * as ImagePicker from "expo-image-picker";
-import * as Sharing from "expo-sharing";
+import { getDocumentAsync } from "expo-document-picker";
+import { documentDirectory, downloadAsync } from "expo-file-system";
+import { launchImageLibraryAsync, requestMediaLibraryPermissionsAsync } from "expo-image-picker";
+import { shareAsync } from "expo-sharing";
 import {
   AlertTriangle,
   Download,
@@ -26,18 +33,19 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 
-// Import modular components
 import { FolderHeader } from "@/components/folder/FolderHeader";
 import {
   BlurErrorModal,
   ConfirmModal,
   FileTypeModal,
   ImageViewModal,
+  NmatResultModal,
   ProgressModal,
   QualityModalContent
 } from "@/components/folder/FolderModals";
 import { RequirementItem } from "@/components/folder/RequirementItem";
 import { RequirementSkeleton } from "@/components/folder/RequirementSkeleton";
+import ErrorDisplay, { detectErrorType } from '@/components/ui/ErrorDisplay';
 
 export default function FolderScreen() {
   const { user } = useAuth();
@@ -68,7 +76,7 @@ export default function FolderScreen() {
   const [printingFiles, setPrintingFiles] = useState<boolean>(false);
   const [showDownloadConfirmModal, setShowDownloadConfirmModal] = useState<boolean>(false);
   const [showFileDownloadModal, setShowFileDownloadModal] = useState<boolean>(false);
-  const [fileToDownload, setFileToDownload] = useState<{ file: any; reqId: string } | null>(null);
+  const [fileToDownload, setFileToDownload] = useState<{ file: UploadedFile; reqId: string } | null>(null);
 
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
@@ -81,12 +89,23 @@ export default function FolderScreen() {
 
   // Blur check modal state
   const [checkingBlur, setCheckingBlur] = useState<boolean>(false);
+  const [checkingNmat, setCheckingNmat] = useState<boolean>(false);
   const [showQualityModal, setShowQualityModal] = useState<boolean>(false);
   const [showBlurErrorModal, setShowBlurErrorModal] = useState<boolean>(false);
   const [blurPercentage, setBlurPercentage] = useState<number>(0);
   const [sharpPercentage, setSharpPercentage] = useState<number>(0);
   const [pendingImageUpload, setPendingImageUpload] = useState<{ reqId: string | null; fileInfo: FileInfo } | null>(null);
   const [qualityCountdown, setQualityCountdown] = useState<number>(3);
+
+  // NMAT extraction result modal state
+  const [showNmatModal, setShowNmatModal] = useState<boolean>(false);
+  const [nmatResultData, setNmatResultData] = useState<{
+    success: boolean;
+    found: boolean;
+    percentileRank: number | null;
+    reason?: string;
+    pendingUpload: { reqId: string | null; fileInfo: FileInfo } | null;
+  } | null>(null);
 
   // Image viewing state
   const [imageScale] = useState(new Animated.Value(1));
@@ -121,15 +140,14 @@ export default function FolderScreen() {
         }
       );
 
-
       if (response.data.success) {
         const transformedRequirements = response.data.requirements.map(
-          (req: any) => ({
-            id: req.id,
-            name: req.name,
-            completed: req.completed || false,
-            file_count: req.file_count || 1,
-            uploadedFiles: req.uploaded_files || [],
+          (req: Record<string, unknown>) => ({
+            id: req.id as string,
+            name: req.name as string,
+            completed: (req.completed as boolean) || false,
+            file_count: (req.file_count as number) || 1,
+            uploadedFiles: (req.uploaded_files as UploadedFile[]) || [],
           })
         );
 
@@ -171,12 +189,12 @@ export default function FolderScreen() {
 
       if (response.data.success) {
         const transformedRequirements = response.data.requirements.map(
-          (req: any) => ({
-            id: req.id,
-            name: req.name,
-            completed: req.completed || false,
-            file_count: req.file_count || 1,
-            uploadedFiles: req.uploaded_files || [],
+          (req: Record<string, unknown>) => ({
+            id: req.id as string,
+            name: req.name as string,
+            completed: (req.completed as boolean) || false,
+            file_count: (req.file_count as number) || 1,
+            uploadedFiles: (req.uploaded_files as UploadedFile[]) || [],
           })
         );
 
@@ -223,12 +241,53 @@ export default function FolderScreen() {
     setShowFileTypeModal(true);
   };
 
+  // Validate selected file (NMAT percentile extraction vs ML Image Blur check)
+  const validateAndUploadFile = async (reqId: string | null, fileInfo: FileInfo, isImage: boolean) => {
+    const currentReq = requirements.find(r => r.id === reqId);
+    const reqName = currentReq?.name || '';
+
+    if (isNmatRequirement(reqName)) {
+      // Validate NMAT percentile using OpenAI API (EXPO_OPENAI_API_KEY)
+      setCheckingNmat(true);
+      const extraction = await extractNmatPercentileFromImage(fileInfo.uri, EXPO_OPENAI_API_KEY);
+      setCheckingNmat(false);
+
+      setNmatResultData({
+        success: extraction.success,
+        found: extraction.found,
+        percentileRank: extraction.percentileRank,
+        reason: extraction.reason,
+        pendingUpload: { reqId, fileInfo },
+      });
+      setShowNmatModal(true);
+    } else {
+      // Non-NMAT requirements: use ML image classifier blur check for images
+      if (isImage) {
+        setCheckingBlur(true);
+        const { isBlurry, blurScore, sharpScore } = await checkImageBlur(fileInfo);
+        setCheckingBlur(false);
+
+        setBlurPercentage(blurScore);
+        setSharpPercentage(sharpScore);
+        setPendingImageUpload({ reqId, fileInfo });
+
+        if (isBlurry || blurScore > 40) {
+          setShowBlurErrorModal(true);
+        } else {
+          setShowQualityModal(true);
+        }
+      } else {
+        await handleFileUpload(reqId, fileInfo);
+      }
+    }
+  };
+
   // Pick document file
   const pickDocument = async () => {
     try {
       setShowFileTypeModal(false);
 
-      const result = await DocumentPicker.getDocumentAsync({
+      const result = await getDocumentAsync({
         type: [
           "application/pdf",
           "application/msword",
@@ -259,7 +318,7 @@ export default function FolderScreen() {
           mimeType: mimeType || 'application/octet-stream',
         };
 
-        await handleFileUpload(selectedRequirement, fileInfo);
+        await validateAndUploadFile(selectedRequirement, fileInfo, false);
       }
     } catch (err) {
       Toast.show({
@@ -278,14 +337,13 @@ export default function FolderScreen() {
         uri: fileInfo.uri,
         name: fileInfo.name,
         type: fileInfo.mimeType || 'image/jpeg',
-      } as any);
+      } as unknown as Blob);
 
       console.log("Calling ML Blur Check (Simple Fetch):", `${ML_API_BASE_URL}/api/app/blur-check`);
 
       const response = await fetch(`${ML_API_BASE_URL}/api/app/blur-check`, {
         method: 'POST',
         body: formData,
-        // No custom headers to avoid OPTIONS preflight
       });
 
       if (!response.ok) {
@@ -310,13 +368,13 @@ export default function FolderScreen() {
     try {
       setShowFileTypeModal(false);
 
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } = await requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Toast.show({ type: "error", text1: "Permission Required", text2: "Need camera roll permissions." });
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
+      const result = await launchImageLibraryAsync({
         mediaTypes: 'images',
         allowsEditing: false,
         quality: 1,
@@ -332,19 +390,7 @@ export default function FolderScreen() {
           mimeType: asset.mimeType || 'image/jpeg',
         };
 
-        setCheckingBlur(true);
-        const { isBlurry, blurScore, sharpScore } = await checkImageBlur(fileInfo);
-        setCheckingBlur(false);
-
-        setBlurPercentage(blurScore);
-        setSharpPercentage(sharpScore);
-        setPendingImageUpload({ reqId: selectedRequirement, fileInfo });
-
-        if (isBlurry || blurScore > 40) {
-          setShowBlurErrorModal(true);
-        } else {
-          setShowQualityModal(true);
-        }
+        await validateAndUploadFile(selectedRequirement, fileInfo, true);
       }
     } catch (err) {
       Toast.show({ type: "error", text1: "Error", text2: "Failed to pick image" });
@@ -352,7 +398,7 @@ export default function FolderScreen() {
   };
 
   // Handle file upload to server
-  const handleFileUpload = async (reqId: string | null, fileInfo: FileInfo) => {
+  const handleFileUpload = async (reqId: string | null, fileInfo: FileInfo, extractedPercentile?: number | null) => {
     try {
       setUploading(true);
       setUploadProgress(0);
@@ -362,6 +408,9 @@ export default function FolderScreen() {
       const formData = new FormData();
       formData.append("user_id", user.id);
       formData.append("requirement_id", reqId);
+      if (extractedPercentile !== undefined && extractedPercentile !== null) {
+        formData.append("nmat_score", extractedPercentile.toString());
+      }
 
       const timestamp = Date.now();
       const safeName = fileInfo.name
@@ -386,7 +435,7 @@ export default function FolderScreen() {
         uri: fileInfo.uri,
         name: fileName,
         type: fileInfo.mimeType || 'application/octet-stream',
-      } as any);
+      } as unknown as Blob);
 
       console.log("Uploading to:", `${API_BASE_URL}/api/upload_requirement.php`);
       
@@ -409,19 +458,20 @@ export default function FolderScreen() {
       if (data.success) {
         setUploadProgress(100);
         await refreshRequirements();
-        Toast.show({ type: "success", text1: "Success", text2: "File uploaded successfully" });
+        const successMsg = (extractedPercentile !== undefined && extractedPercentile !== null)
+          ? `File uploaded successfully. Verified NMAT Percentile Rank: ${extractedPercentile}% (Passed ≥ 40%)`
+          : "File uploaded successfully";
+        Toast.show({ type: "success", text1: "Success", text2: successMsg });
       } else {
         Toast.show({ type: "error", text1: "Error", text2: data.message || "Failed to upload file" });
       }
-    } catch (err: any) {
-      console.error("Upload error details:", err.response?.data || err.message);
-      const errorMsg = err.response?.data?.message || err.message || "Unknown Error";
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Unknown Error";
       Toast.show({
         type: "error",
         text1: "Error",
         text2: errorMsg.length > 50 ? errorMsg.substring(0, 50) + "..." : errorMsg
       });
-      // Also show Alert for full error on failure
       Alert.alert("Upload Error", errorMsg);
     } finally {
       setTimeout(() => {
@@ -491,7 +541,7 @@ export default function FolderScreen() {
               requirement_name: file.requirementName,
               file_id: file.id,
               file_name: file.name,
-              file_path: (file as any).file_path
+              file_path: (file as UploadedFile).file_path
             }))
           },
           { timeout: 60000 }
@@ -499,9 +549,9 @@ export default function FolderScreen() {
 
         if (response.data.success && response.data.pdf_url) {
           const pdfFileName = `Student_Requirements_${user.first_name}_${user.last_name}_${Date.now()}.pdf`;
-          const pdfUri = FileSystem.documentDirectory + pdfFileName;
-          await FileSystem.downloadAsync(response.data.pdf_url, pdfUri);
-          await Sharing.shareAsync(pdfUri, { mimeType: 'application/pdf', dialogTitle: 'Download Compiled PDF' });
+          const pdfUri = documentDirectory + pdfFileName;
+          await downloadAsync(response.data.pdf_url, pdfUri);
+          await shareAsync(pdfUri, { mimeType: 'application/pdf', dialogTitle: 'Download Compiled PDF' });
           Toast.show({ type: "success", text1: "PDF Ready", text2: `Files compiled successfully` });
           return;
         }
@@ -514,9 +564,9 @@ export default function FolderScreen() {
       const downloadPromises = allFiles.map(async (file) => {
         try {
           if (!user?.id) return null;
-          const downloadUrl = `${API_BASE_URL}/api/get_requirement_file.php?user_id=${user.id}&requirement_id=${file.requirementId}&file_path=${encodeURIComponent((file as any).file_path)}`;
-          const fileUri = FileSystem.documentDirectory + file.name;
-          const { uri } = await FileSystem.downloadAsync(downloadUrl, fileUri);
+          const downloadUrl = `${API_BASE_URL}/api/get_requirement_file.php?user_id=${user.id}&requirement_id=${file.requirementId}&file_path=${encodeURIComponent((file as UploadedFile).file_path || '')}`;
+          const fileUri = documentDirectory + file.name;
+          const { uri } = await downloadAsync(downloadUrl, fileUri);
           return uri;
         } catch (error) {
           return null;
@@ -526,7 +576,7 @@ export default function FolderScreen() {
       const downloadedFileUris = (await Promise.all(downloadPromises)).filter(Boolean);
 
       for (const uri of downloadedFileUris) {
-        if (uri) await Sharing.shareAsync(uri);
+        if (uri) await shareAsync(uri);
       }
 
       Toast.show({ type: "success", text1: "Download Complete", text2: `${downloadedFileUris.length} files downloaded` });
@@ -538,19 +588,19 @@ export default function FolderScreen() {
   };
 
   // View file handler
-  const handleViewFile = async (file: any, requirementId: string) => {
+  const handleViewFile = async (file: UploadedFile, requirementId: string) => {
     try {
       if (!user?.id) return;
 
       if (file.type === "image") {
-        const imageUrl = `${API_BASE_URL}/api/get_requirement_file.php?user_id=${user.id}&requirement_id=${requirementId}&file_path=${encodeURIComponent(file.file_path)}`;
+        const imageUrl = `${API_BASE_URL}/api/get_requirement_file.php?user_id=${user.id}&requirement_id=${requirementId}&file_path=${encodeURIComponent(file.file_path || '')}`;
         setViewingImage(imageUrl);
       } else {
         setDownloadingFile(file.name);
-        const downloadUrl = `${API_BASE_URL}/api/get_requirement_file.php?user_id=${user.id}&requirement_id=${requirementId}&file_path=${encodeURIComponent(file.file_path)}`;
-        const fileUri = FileSystem.documentDirectory + file.name;
-        const { uri } = await FileSystem.downloadAsync(downloadUrl, fileUri);
-        await Sharing.shareAsync(uri);
+        const downloadUrl = `${API_BASE_URL}/api/get_requirement_file.php?user_id=${user.id}&requirement_id=${requirementId}&file_path=${encodeURIComponent(file.file_path || '')}`;
+        const fileUri = documentDirectory + file.name;
+        const { uri } = await downloadAsync(downloadUrl, fileUri);
+        await shareAsync(uri);
         setDownloadingFile(null);
       }
     } catch (error) {
@@ -560,16 +610,16 @@ export default function FolderScreen() {
   };
 
   // Download file handler
-  const handleDownloadFile = async (file: any, requirementId: string) => {
+  const handleDownloadFile = async (file: UploadedFile, requirementId: string) => {
     try {
       if (!user?.id) return;
 
       setDownloadingFile(file.name);
-      const downloadUrl = `${API_BASE_URL}/api/get_requirement_file.php?user_id=${user.id}&requirement_id=${requirementId}&file_path=${encodeURIComponent(file.file_path)}`;
-      const fileUri = FileSystem.documentDirectory + file.name;
-      const { uri } = await FileSystem.downloadAsync(downloadUrl, fileUri);
+      const downloadUrl = `${API_BASE_URL}/api/get_requirement_file.php?user_id=${user.id}&requirement_id=${requirementId}&file_path=${encodeURIComponent(file.file_path || '')}`;
+      const fileUri = documentDirectory + file.name;
+      const { uri } = await downloadAsync(downloadUrl, fileUri);
 
-      await Sharing.shareAsync(uri, { mimeType: file.mimeType, dialogTitle: `Download ${file.name}` });
+      await shareAsync(uri, { mimeType: file.mimeType, dialogTitle: `Download ${file.name}` });
       setDownloadingFile(null);
       Toast.show({ type: "success", text1: "Success", text2: "File downloaded successfully" });
     } catch (error) {
@@ -593,11 +643,13 @@ export default function FolderScreen() {
   // Error state
   if (error) {
     return (
-      <View className="flex-1 bg-white p-4 justify-center items-center">
-        <Text className="text-red-500 mb-4 text-center">Error: {error}</Text>
-        <TouchableOpacity className="bg-[#be2e2e] px-4 py-2 rounded-lg" onPress={retryFetch}>
-          <Text className="text-white">Try Again</Text>
-        </TouchableOpacity>
+      <View className="flex-1" style={{ backgroundColor }}>
+        <ErrorDisplay
+          type={detectErrorType(error)}
+          title={error.includes('User ID') ? 'Authentication Error' : undefined}
+          message={error}
+          onRetry={retryFetch}
+        />
       </View>
     );
   }
@@ -726,6 +778,7 @@ export default function FolderScreen() {
       <ProgressModal visible={uploading} title="Uploading File" progress={uploadProgress} />
       <ProgressModal visible={downloadingFile !== null} title="Downloading File" subtitle={downloadingFile || ""} />
       <ProgressModal visible={checkingBlur} title="Analyzing Image" subtitle="Checking image quality..." />
+      <ProgressModal visible={checkingNmat} title="Analyzing NMAT Result" subtitle="Reading NMAT Percentile Rank..." />
 
       <ImageViewModal
         visible={viewingImage !== null}
@@ -768,6 +821,29 @@ export default function FolderScreen() {
         blurPercentage={blurPercentage}
         sharpPercentage={sharpPercentage}
         onClose={() => { setShowBlurErrorModal(false); setPendingImageUpload(null); }}
+      />
+
+      <NmatResultModal
+        visible={showNmatModal}
+        success={nmatResultData?.success ?? false}
+        found={nmatResultData?.found ?? false}
+        percentileRank={nmatResultData?.percentileRank ?? null}
+        reason={nmatResultData?.reason}
+        onClose={() => {
+          setShowNmatModal(false);
+          setNmatResultData(null);
+        }}
+        onConfirmUpload={async () => {
+          setShowNmatModal(false);
+          if (nmatResultData?.pendingUpload) {
+            await handleFileUpload(
+              nmatResultData.pendingUpload.reqId,
+              nmatResultData.pendingUpload.fileInfo,
+              nmatResultData.percentileRank
+            );
+          }
+          setNmatResultData(null);
+        }}
       />
 
       <Modal visible={showQualityModal} transparent={true} animationType="fade">

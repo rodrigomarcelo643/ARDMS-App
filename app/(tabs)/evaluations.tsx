@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Alert, RefreshControl, ScrollView, View } from "react-native";
 
 // components
+import ErrorDisplay, { detectErrorType } from "@/components/ui/ErrorDisplay";
 import EvaluationDetailModal from "@/components/evaluations/EvaluationDetailModal";
 import EvaluationSkeleton from "@/components/evaluations/EvaluationSkeleton";
 import EvaluationSummaryCard from "@/components/evaluations/EvaluationSummaryCard";
@@ -165,7 +166,22 @@ const Evaluations: React.FC = () => {
 
   // ── Render Helpers ─────────────────────────────────────────────────────────
   if (loading) return <EvaluationSkeleton />;
-  if (!evaluationData) return null;
+  if (!evaluationData) {
+    return (
+      <View className="flex-1" style={{ backgroundColor }}>
+        <ErrorDisplay
+          type={error ? detectErrorType(error) : "empty"}
+          title={error ? undefined : "No Evaluation Data"}
+          message={error || "Your evaluation data is not available yet."}
+          onRetry={() => {
+            fetchEvaluationData();
+            fetchUploadPermissions();
+            fetchGradeImages();
+          }}
+        />
+      </View>
+    );
+  }
 
   const studentYearLevelId = Number(user?.year_level_id);
   const studentYearLevelNum = yearLevelToNumber(user?.year_level_name || "");
