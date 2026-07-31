@@ -127,10 +127,10 @@ export default function TabLayout() {
 
   const knownNotificationIds = useRef<Set<string | number>>(new Set());
   const knownAnnouncementIds = useRef<Set<string | number>>(new Set());
+  const knownChatMessageKeys = useRef<Set<string>>(new Set());
   const isFirstNotificationFetch = useRef(true);
   const isFirstAnnouncementFetch = useRef(true);
   const isFirstMsgFetch = useRef(true);
-  const prevUnreadMsgCount = useRef(0);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -269,22 +269,38 @@ export default function TabLayout() {
       isFetchingMessage.current = true;
 
       try {
-        const unreadMessages = await messageService.getUnreadCount(user.id);
-        setMessageCount(unreadMessages);
+        const { users: conversations } = await messageService.getConversations(String(user.id));
+        const totalUnread = conversations.reduce((acc: number, c: { unreadCount?: number }) => acc + (c.unreadCount || 0), 0);
+        setMessageCount(totalUnread);
 
         if (isFirstMsgFetch.current) {
-          prevUnreadMsgCount.current = unreadMessages;
+          conversations.forEach((c: { id?: string | number; lastMessageTimestamp?: string; lastMessage?: string }) => {
+            const key = `${c.id}_${c.lastMessageTimestamp || c.lastMessage}`;
+            knownChatMessageKeys.current.add(key);
+          });
           isFirstMsgFetch.current = false;
         } else {
-          if (unreadMessages > prevUnreadMsgCount.current) {
-            playNotificationSound();
-            showLocalNotification(
-              "New Message",
-              `You have ${unreadMessages} unread message(s)`,
-              { type: "message" },
-            );
+          let hasNewMessage = false;
+          for (const conv of conversations) {
+            const key = `${conv.id}_${conv.lastMessageTimestamp || conv.lastMessage}`;
+            if ((conv.unreadCount || 0) > 0 && !knownChatMessageKeys.current.has(key)) {
+              knownChatMessageKeys.current.add(key);
+              hasNewMessage = true;
+
+              const senderName = conv.name || "New Chat Message";
+              const messageText = conv.lastMessage || "Sent you a message";
+
+              // Trigger OS Device Notification for New Chat Message
+              showLocalNotification(`💬 ${senderName}`, messageText, {
+                type: "chat",
+                chatId: conv.unique_key || conv.id,
+                name: conv.name,
+              });
+            }
           }
-          prevUnreadMsgCount.current = unreadMessages;
+          if (hasNewMessage) {
+            playNotificationSound();
+          }
         }
       } catch (error: unknown) {
         const err = error as { message?: string };
