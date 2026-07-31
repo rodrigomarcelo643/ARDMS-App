@@ -81,10 +81,15 @@ export default function TabLayout() {
   const tabBarPadding = hasThreeButtonNav ? 40 : 35;
   const tabBarBottomOffset = hasThreeButtonNav ? insets.bottom : 4;
 
-  // Load notification sound
+  // Load notification sound and set device audio mode
   useEffect(() => {
     const loadSound = async () => {
       try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+        });
+
         const { sound } = await Audio.Sound.createAsync(
           require("@/assets/sounds/notification_sound.mp3"),
         );
@@ -103,17 +108,26 @@ export default function TabLayout() {
     };
   }, []);
 
-  // Play notification sound when count increases (with debouncing)
+  // Play notification sound when count increases or new item arrives
   const playNotificationSound = async () => {
     try {
-      if (soundRef.current && !soundPlayingRef.current) {
-        soundPlayingRef.current = true;
-        await soundRef.current.replayAsync();
-        // Reset flag after sound duration (assuming 2 seconds)
-        setTimeout(() => {
-          soundPlayingRef.current = false;
-        }, 2000);
+      if (soundPlayingRef.current) return;
+      soundPlayingRef.current = true;
+
+      if (soundRef.current) {
+        await soundRef.current.setPositionAsync(0).catch(() => {});
+        await soundRef.current.playAsync().catch(() => {});
+      } else {
+        const { sound } = await Audio.Sound.createAsync(
+          require("@/assets/sounds/notification_sound.mp3"),
+          { shouldPlay: true },
+        );
+        soundRef.current = sound;
       }
+
+      setTimeout(() => {
+        soundPlayingRef.current = false;
+      }, 1500);
     } catch (error) {
       console.error("Error playing notification sound:", error);
       soundPlayingRef.current = false;
