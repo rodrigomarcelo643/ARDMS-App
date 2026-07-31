@@ -115,7 +115,7 @@ const AnnouncementsScreen: React.FC = () => {
         },
       );
 
-      console.log("API Response:", response.data);
+      //console.log("API Response:", response.data);
 
       if (response.data && response.data.success) {
         dispatch(setAnnouncements(response.data.announcements || []));
