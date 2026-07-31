@@ -155,7 +155,7 @@ const Evaluations: React.FC = () => {
       fetchUploadPermissions();
       fetchGradeImages();
     }
-  }, [user]);
+  }, [user?.id]);
 
   const onRefresh = () => {
     setRefreshing(true);
