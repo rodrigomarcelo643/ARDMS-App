@@ -19,7 +19,7 @@ export const AIQuickLinks: React.FC<AIQuickLinksProps> = ({
 }) => (
   <View className="mb-6">
     <Text style={{ fontSize: 18, fontWeight: '600', color: textColor, marginBottom: 16, paddingHorizontal: 16 }}>
-      Quick Access for Medical Students
+      Quick Access
     </Text>
     <ScrollView
       horizontal
