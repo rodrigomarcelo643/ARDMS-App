@@ -1,5 +1,5 @@
 import { readAsStringAsync, EncodingType } from 'expo-file-system';
-import { EXPO_GEMINI_API_KEY } from '@/constants/Config';
+import { EXPO_OPENAI_API_KEY } from '@/constants/Config';
 
 export interface NmatExtractionResult {
   success: boolean;
@@ -8,21 +8,18 @@ export interface NmatExtractionResult {
   reason?: string;
 }
 
-const GEMINI_API_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
-
 export const extractNmatPercentileFromImage = async (
   fileUri: string,
   apiKey?: string
 ): Promise<NmatExtractionResult> => {
   try {
-    const keyToUse = apiKey || EXPO_GEMINI_API_KEY;
+    const keyToUse = apiKey || EXPO_OPENAI_API_KEY;
     if (!keyToUse) {
       return {
         success: false,
         percentileRank: null,
         found: false,
-        reason: 'Gemini API key (EXPO_PUBLIC_GEMINI_API_KEY) is missing.',
+        reason: 'OpenAI API key (EXPO_PUBLIC_OPENAI_API_KEY) is missing.',
       };
     }
 
@@ -44,54 +41,58 @@ export const extractNmatPercentileFromImage = async (
     else if (fileUri.toLowerCase().endsWith('.pdf')) mimeType = 'application/pdf';
 
     const payload = {
-      contents: [
+      model: 'gpt-4o-mini',
+      messages: [
         {
-          parts: [
+          role: 'user',
+          content: [
             {
-              text: 'You are a document analyzer. Read the provided NMAT (National Medical Admission Test) result document and extract the Percentile Rank value. Respond ONLY with a JSON object in this exact format: {"found": true/false, "percentile_rank": <number or null>, "reason": "<brief explanation>"}',
+              type: 'text',
+              text: 'You are a document analyzer. Read the provided NMAT (National Medical Admission Test) result document and extract the Percentile Rank value. Respond ONLY with a JSON object in this format: {"found": true/false, "percentile_rank": <number or null>, "reason": "<brief explanation>"}',
             },
             {
-              inline_data: {
-                mime_type: mimeType,
-                data: base64Data,
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${base64Data}`,
               },
             },
           ],
         },
       ],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 150,
-        responseMimeType: 'application/json',
-      },
+      response_format: { type: 'json_object' },
+      max_tokens: 150,
+      temperature: 0.1,
     };
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${keyToUse}`, {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${keyToUse}`,
+      },
       body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('NMAT Gemini HTTP error:', response.status, errText);
+      console.error('NMAT Extraction HTTP error:', response.status, errText);
       return {
         success: false,
         percentileRank: null,
         found: false,
-        reason: `Gemini API returned HTTP error ${response.status}`,
+        reason: `API returned HTTP error ${response.status}`,
       };
     }
 
     const json = await response.json();
-    const contentText = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const contentText = json?.choices?.[0]?.message?.content;
 
     if (!contentText) {
       return {
         success: false,
         percentileRank: null,
         found: false,
-        reason: 'Empty response from Gemini Vision API',
+        reason: 'Empty response from OpenAI Vision API',
       };
     }
 
