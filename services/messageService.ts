@@ -199,11 +199,11 @@ export const messageService = {
       console.log('🔔 Sending push notification to receiver only...');
 
       const pushResponse = await axios.post(`${API_BASE_URL}/api/send_push_notification.php`, {
+        type: 'message',
         sender_id: message.senderId,
         receiver_id: message.receiverId,
         message: message.text,
         sender_name: senderName || 'Someone',
-        notify_sender: false, // Only notify receiver
       });
       console.log('✅ Push notification sent to receiver:', pushResponse.data);
     } catch (error: any) {
