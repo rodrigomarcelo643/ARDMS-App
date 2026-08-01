@@ -4,11 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import axios from "axios";
 import {
-  BookOpen,
+  Bell,
   Calendar,
-  GraduationCap,
-  Microscope,
-  Sparkles,
+  ClipboardList,
+  FolderOpen,
   Upload,
   X,
 } from "lucide-react-native";
@@ -75,58 +74,50 @@ export default function AIAssistant() {
   const quickLinks: QuickLink[] = [
     {
       id: "1",
-      title: "AI Mentor",
-      description: "Personalized medical study guidance",
-      icon: Sparkles,
-      color: "#7C3AED",
-      action: "mentor",
-      context: "mentor",
+      title: "My Requirements",
+      description: "Check pending documents to upload",
+      icon: Upload,
+      color: "#DC2626",
+      action: "requirements",
+      context: "requirements",
+    },
+    {
+      id: "2",
+      title: "Evaluations",
+      description: "View your evaluation results & grades",
+      icon: ClipboardList,
+      color: "#059669",
+      action: "evaluations",
+      context: "evaluations",
     },
     {
       id: "3",
-      title: "Study Resources",
-      description: "Medical textbooks & references",
-      icon: BookOpen,
-      color: "#059669",
-      action: "resources",
-      context: "resources",
-    },
-    {
-      id: "4",
-      title: "Exam Preparation",
-      description: "Study plans & practice questions",
-      icon: GraduationCap,
-      color: "#DC2626",
-      action: "exams",
-      context: "exams",
-    },
-    {
-      id: "5",
-      title: "Research Guidance",
-      description: "Thesis & research assistance",
-      icon: Microscope,
-      color: "#7C3AED",
-      action: "research",
-      context: "research",
-    },
-    {
-      id: "6",
-      title: "School Calendar",
-      description: "Check important events and dates",
+      title: "Event Calendar",
+      description: "Upcoming events and important dates",
       icon: Calendar,
       color: "#D97706",
       action: "calendar",
       context: "calendar",
     },
     {
-      id: "7",
-      title: "Requirements Upload",
-      description: "See required documents to upload",
-      icon: Upload,
-      color: "#F59E0B",
-      action: "requirements",
-      context: "requirements",
+      id: "4",
+      title: "Announcements",
+      description: "Latest school announcements",
+      icon: Bell,
+      color: "#7C3AED",
+      action: "announcements",
+      context: "announcements",
     },
+    {
+      id: "5",
+      title: "My Folders",
+      description: "Browse your uploaded documents",
+      icon: FolderOpen,
+      color: "#0284C7",
+      action: "folders",
+      context: "folders",
+    },
+
   ];
 
   useEffect(() => {
@@ -280,12 +271,11 @@ export default function AIAssistant() {
     if (isLoading) return;
     setCurrentContext(context);
     const messagesMap: Record<string, string> = {
-      mentor: "I need guidance on my medical studies. Personalized mentorship?",
-      resources: "Medical textbooks and study resources recommendation?",
-      exams: "Study plan for upcoming medical exams.",
-      research: "Assistance with medical research project.",
-      calendar: "What events are on my calendar?",
-      requirements: "What requirements do I need to complete?",
+      requirements: "What are my pending requirements that I need to upload?",
+      evaluations: "Show me my evaluation results and grades.",
+      calendar: "What are the upcoming events and important dates on my calendar?",
+      announcements: "What are the latest school announcements?",
+      folders: "What documents have I uploaded in my folders?",
     };
     const messageText = messagesMap[action] || "I need help with this area.";
     const userMessage: Message = {
@@ -317,6 +307,14 @@ export default function AIAssistant() {
     }
   };
 
+  const getUserAvatar = () => {
+    if (user?.avatar_data) return user.avatar_data;
+    const avatar = user?.avatar_url || user?.avatar;
+    if (!avatar) return undefined;
+    if (avatar.includes('swu-head') || avatar.includes('swu_header')) return undefined;
+    return avatar.startsWith('http') ? avatar : `${API_BASE_URL}/${avatar}`;
+  };
+
   const getUserInitials = () => {
     if (!user) return "U";
     return (
@@ -346,7 +344,11 @@ export default function AIAssistant() {
           ref={flatListRef}
           data={messages}
           renderItem={({ item }) => (
-            <AIMessageItem item={item} userInitials={getUserInitials()} />
+            <AIMessageItem
+              item={item}
+              userInitials={getUserInitials()}
+              userAvatar={getUserAvatar()}
+            />
           )}
           keyExtractor={(item) => item.id}
           className="flex-1 px-4 pt-4"
