@@ -1,6 +1,6 @@
+import { CheckCircle2, ChevronDown, Scroll, Square } from "lucide-react-native";
 import React from 'react';
-import { View, Text, TouchableOpacity, Animated, ActivityIndicator, Dimensions } from 'react-native';
-import { CheckCircle2, Square, ChevronDown, Scroll } from "lucide-react-native";
+import { ActivityIndicator, Animated, Dimensions, Text, TouchableOpacity, View } from 'react-native';
 
 interface PolicyAcceptanceSectionProps {
   fadeAnim: Animated.Value;
@@ -89,7 +89,7 @@ export const PolicyAcceptanceSection: React.FC<PolicyAcceptanceSectionProps> = (
                 <ActivityIndicator color="white" />
               ) : (
                 <Text className="text-white text-center font-medium">
-                  Continue to ARDMS
+                  Continue to MSIS
                 </Text>
               )}
             </TouchableOpacity>
