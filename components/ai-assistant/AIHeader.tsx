@@ -31,10 +31,30 @@ export const AIHeader: React.FC<AIHeaderProps> = ({
         />
       </View>
       <View>
-        <Text style={{ fontSize: 20, fontWeight: "bold", color: textColor }}>
-          <Text className="text-[#af1616] font-extrabold">Med</Text>
-          <Text className="text-[#16a34a] font-extrabold">SIS</Text> AI
-        </Text>
+        <Text className="text-xl mt-2 font-extrabold tracking-wide">
+                      <Text
+                        style={{
+                          color: "#af1616",
+                          fontWeight: "900",
+                          textShadowColor: "rgba(0,0,0,0.3)",
+                          textShadowOffset: { width: 1, height: 1 },
+                          textShadowRadius: 2,
+                        }}
+                      >
+                        Med
+                      </Text>
+                      <Text
+                        style={{
+                          color: "#16a34a",
+                          fontWeight: "900",
+                          textShadowColor: "rgba(0,0,0,0.25)",
+                          textShadowOffset: { width: 1, height: 1 },
+                          textShadowRadius: 2,
+                        }}
+                      >
+                        SIS
+                      </Text>
+                    </Text>
         <Text style={{ fontSize: 14, color: mutedColor }}>
           Academic Records Support
         </Text>
