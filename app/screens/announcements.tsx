@@ -163,7 +163,9 @@ const AnnouncementsScreen: React.FC = () => {
     }
   };
 
-  // Filter announcements based on selected priority
+  const priorityWeight: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+  // Filter and sort announcements: priority first, then newest date
   useEffect(() => {
     let filtered = [...announcements];
 
@@ -171,8 +173,14 @@ const AnnouncementsScreen: React.FC = () => {
       filtered = filtered.filter((ann) => ann.priority === selectedPriority);
     }
 
+    filtered.sort((a, b) => {
+      const dateDiff = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return (priorityWeight[a.priority] ?? 3) - (priorityWeight[b.priority] ?? 3);
+    });
+
     setFilteredAnnouncements(filtered);
-    setPage(1); // Reset to first page when filters change
+    setPage(1);
   }, [announcements, selectedPriority]);
 
   // Handle lazy loading
