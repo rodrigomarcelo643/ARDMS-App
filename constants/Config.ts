@@ -10,8 +10,8 @@ export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.trim()!;
 export const ML_API_BASE_URL = process.env.EXPO_PUBLIC_ML_API_BASE_URL!;
 
 /**
- * OpenAI API Key for NMAT Extraction
+ * Gemini API Key for NMAT Extraction
  */
-export const EXPO_OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || '';
+export const EXPO_GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
 
 
