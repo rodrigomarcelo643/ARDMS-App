@@ -10,11 +10,14 @@
   <img src="https://img.shields.io/badge/Version-1.0.0-brightgreen?style=for-the-badge" alt="App Version" />
   <img src="https://img.shields.io/badge/PHP-8.3-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP Version" />
   <img src="https://img.shields.io/badge/Python%20(ML%20Microservice)-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python ML Microservice" />
+  <img src="https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI GPT-4o-mini" />
   <img src="https://img.shields.io/badge/Axios-^1.11.0-5A29E4?style=for-the-badge&logo=axios&logoColor=white" alt="Axios Version" />
   <img src="https://img.shields.io/badge/Context%20API-React-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="Context API" />
 </div>
 
 **MedSIS** ( Medical Student Information System ) is a comprehensive mobile application designed for students to upload academic requirements, view evaluation results history, and manage their educational journey. This first version release focuses on streamlined document submission, evaluation tracking, and essential academic tools with AI assistance and real-time communication features.
+
+---
 
 ### 🧠 ML-Powered Image Quality Validation
 
@@ -24,13 +27,63 @@ When a student selects a document (like a general academic requirement or an eva
 
 ```mermaid
 graph TD
-    A[Student Selects Document or Grade Image] -->|expo-image-picker| B(Send to Validation Microservice)
-    B -->|API Interaction| C{ML Validation Endpoint}
-    C -->|Quality Score < 100| D[❌ Reject: 'Image is too blurry']
-    D -.->|Real-time Error UI| A
-    C -->|Quality Score >= 100| E[✅ Accept: Image Quality Verified]
+    A[Student Selects Document or Grade Image] -->|expo-image-picker| B(Send to ML Validation Microservice)
+    B -->|POST /api/app/blur-check| C{Laplacian Variance Check}
+    C -->|blur_score < threshold OR is_blurry = true| D[❌ Reject: Show Blur Error Modal]
+    D -.->|Real-time Error UI + Score Display| A
+    C -->|blur_score >= threshold AND is_blurry = false| E[✅ Accept: Image Quality Verified]
     E -->|Generate Access Token| F[(Backend Secure Storage)]
 ```
+
+---
+
+### 🎓 NMAT Percentile Rank Extraction (OpenAI Vision)
+
+MedSIS uses **OpenAI GPT-4o-mini Vision** to automatically extract the NMAT Percentile Rank from uploaded result documents. The student uploads their NMAT result image, which is encoded to Base64 and sent to the OpenAI Vision API. The model reads the document and returns a structured JSON response with the extracted percentile rank. The result is then validated against the passing threshold and displayed on the student's profile.
+
+```mermaid
+graph TD
+    A[Student Uploads NMAT Result Image] -->|expo-image-picker| B(Read File as Base64)
+    B -->|EncodingType.Base64| C(Build OpenAI Vision Payload)
+    C -->|model: gpt-4o-mini + image_url| D{OpenAI Vision API}
+    D -->|found: false OR API Error| E[❌ Extraction Failed: Show Reason]
+    D -->|found: true + percentile_rank| F(Parse JSON Response)
+    F --> G{Validate Against Passing Rate}
+    G -->|percentile_rank >= NMAT_PASSING_RATE| H[✅ Passed: Display Score Card]
+    G -->|percentile_rank < NMAT_PASSING_RATE| I[❌ Failed: Display Score Card]
+    H & I --> J[(Save to Backend via API_BASE_URL)]
+```
+
+**Key implementation details:**
+- Model: `gpt-4o-mini` with `response_format: json_object`
+- Supports JPG, PNG, and PDF mime types
+- `EXPO_PUBLIC_OPENAI_API_KEY` is required — must be set as `EXPO_PUBLIC_` prefix to be bundled into the APK at build time
+- Passing rate threshold defined in `@types/screens/nmat-validation` as `NMAT_PASSING_RATE`
+
+---
+
+### ⚙️ Environment Configuration
+
+MedSIS uses Expo's `EXPO_PUBLIC_` prefix convention so environment variables are correctly bundled into the APK at build time.
+
+```env
+EXPO_PUBLIC_API_BASE_URL=https://your-backend.io/
+EXPO_PUBLIC_ML_API_BASE_URL=https://your-ml-service.onrender.com
+EXPO_PUBLIC_OPENAI_API_KEY=sk-proj-...
+EXPO_GEMINI_API_KEY=your_gemini_key
+EXPO_TOKEN=your_expo_token
+```
+
+> **Important:** Only variables prefixed with `EXPO_PUBLIC_` are accessible inside the app bundle at runtime. Non-prefixed variables are available during the build script only and will be `undefined` in the APK.
+
+For CI/CD (GitHub Actions), store the entire `.env` content as a single GitHub Secret named `ENV_FILE`. The pipeline writes it to disk before the build:
+
+```yaml
+- name: Create .env file
+  run: echo "${{ secrets.ENV_FILE }}" > .env
+```
+
+---
 
 ## 📱 Download APK
 
@@ -61,6 +114,7 @@ graph TD
 - 📊 Comprehensive evaluation tracking with e-signatures
 - 🌙 Dark/Light theme support with NativeWind styling
 - 🚀 **Persistent Caching**: Optimized message and chat data recovery for slow networks
+- 🎓 **NMAT Extraction**: OpenAI GPT-4o-mini Vision for automatic percentile rank extraction
 - ⚡ 100% test coverage ensuring reliability and stability
 
 ## Project Structure
@@ -87,7 +141,7 @@ MedSIS-App/  # Academic Records and Document Management System
 │   └── +not-found.tsx           # 404 error page
 ├── assets/                      # Static assets
 │   ├── fonts/                   # Custom fonts (Montserrat, SpaceMono)
-│   ├── images/                  # App images and icons (including swu-head.png)
+│   ├── images/                  # App images and icons
 │   ├── sounds/                  # Notification sounds
 │   └── styles/                  # Global styles and layouts
 ├── components/                  # Modular Component Architecture
@@ -97,32 +151,34 @@ MedSIS-App/  # Academic Records and Document Management System
 │   ├── evaluations/             # Modular evaluation wrappers & grade uploads
 │   ├── folder/                  # Extracted requirement UI & states
 │   ├── home/                    # Component break-down for dashboard screen
+│   ├── nmat-validation-score/   # NMAT score card, skeleton & validation banner
 │   ├── profile/                 # Separated fields and user actions for profiles
-│   ├── ui/                      # Platform-specific UI components
-│   │   ├── IconSymbol.tsx       # Icon symbol components
-│   │   ├── RotatingDots.tsx     # Loading animations
-│   │   └── TabBarBackground.tsx # Tab bar styling
-│   ├── Avatar.tsx               # User profile picture component
-│   ├── Card.tsx                 # Reusable card layout component
-│   ├── Input.tsx                # Form input components
-│   └── SplashScreen.tsx         # App loading screen
+│   └── ui/                      # Platform-specific UI components
 ├── constants/                   # App constants and configuration
 │   ├── Colors.ts                # Color definitions and themes
-│   └── Config.ts                # Centralized API configuration
+│   └── Config.ts                # Centralized API & key configuration (EXPO_PUBLIC_*)
 ├── contexts/                    # React contexts
 │   ├── AuthContext.tsx          # Authentication state with live data fetching
+│   ├── NetworkContext.tsx       # Network status monitoring
 │   └── ThemeContext.tsx         # Theme management and dark/light mode
 ├── hooks/                       # Custom React hooks
+│   ├── useImageAnalysis.ts      # ML blur check hook
+│   ├── useNmatValidation.ts     # NMAT score fetch & pass/fail validation
 │   ├── useColorScheme.ts        # Theme management
 │   └── useThemeColor.ts         # Color theme utilities
-├── lib/                         # Utility functions
-│   └── utils.ts                 # Common utility functions
 ├── services/                    # External services
+│   ├── nmatExtractionService.ts # OpenAI GPT-4o-mini Vision NMAT extraction
+│   ├── imageAnalysisService.ts  # ML blur detection service
 │   ├── messageService.ts        # Real-time messaging and chat functionality
-│   └── notificationService.ts   # Push notification handling
-├── docs/                         # Detailed documentation
+│   └── notificationService.ts  # Push notification handling
+├── redux/                       # Redux state management
+│   ├── actions/                 # Action creators
+│   ├── reducers/                # State reducers
+│   ├── store.tsx                # Redux store configuration
+│   └── types.ts                 # Redux type definitions
+├── docs/                        # Detailed documentation
 │   ├── ARCHITECTURE.md          # System design overview
-│   ├── CACHING_STRATEGY.md      # Local persistence & performance (NEW!)
+│   ├── CACHING_STRATEGY.md      # Local persistence & performance
 │   ├── IMAGE_BLUR_ANALYSIS.md   # ML validation details
 │   ├── STATE_MANAGEMENT.md      # Redux and Context API usage
 │   └── ...
@@ -132,14 +188,9 @@ MedSIS-App/  # Academic Records and Document Management System
 │   ├── services/                # Service layer tests
 │   ├── components/              # UI component tests
 │   ├── utils/                   # Utility function tests
-│   └── test-runner.js          # Test execution and reporting
-├── scripts/                     # Build and utility scripts
-│   └── reset-project.js         # Project reset utilities
-├── android/                     # Android-specific configuration
-│   ├── app/                     # Android app configuration
-│   └── gradle/                  # Gradle build system
-├── .expo/                       # Expo development files
-├── Configuration files          # Package.json, tsconfig, etc.
+│   └── test-runner.js           # Test execution and reporting
+├── .env                         # Local environment variables (EXPO_PUBLIC_* prefixed)
+├── .env.example                 # Environment variable template
 ├── global.css                   # Global CSS styles
 ├── tailwind.config.js           # Tailwind CSS configuration
 └── nativewind-env.d.ts          # NativeWind type definitions
@@ -152,6 +203,7 @@ MedSIS-App/  # Academic Records and Document Management System
 - **app/\_layout.tsx** - Root layout with navigation setup and authentication checks
 - **app/(tabs)/\_layout.tsx** - Tab navigation configuration with custom styling
 - **contexts/AuthContext.tsx** - Global authentication state and user session management
+- **constants/Config.ts** - Centralized `EXPO_PUBLIC_*` environment variable access
 
 ### Main Features
 
@@ -159,7 +211,13 @@ MedSIS-App/  # Academic Records and Document Management System
 - **app/(tabs)/profile.tsx** - User profile with editable personal and academic information
 - **app/(tabs)/ai-assistant.tsx** - AI-powered chatbot for student assistance
 - **app/(tabs)/folder.tsx** - Document management and file organization system
-- **app/(tabs)/evaluation.tsx** - Evaluation Display with evaluator e-signatures
+- **app/(tabs)/evaluations.tsx** - Evaluation display with evaluator e-signatures
+
+### NMAT Validation Pipeline
+
+- **services/nmatExtractionService.ts** - OpenAI GPT-4o-mini Vision API call, Base64 encoding, JSON parsing
+- **hooks/useNmatValidation.ts** - Fetches NMAT score from backend and validates against passing rate
+- **components/nmat-validation-score/** - Score card UI, skeleton loader, and validation banner
 
 ### Authentication Flow
 
@@ -178,18 +236,18 @@ MedSIS-App/  # Academic Records and Document Management System
 - **app/screens/announcements.tsx** - Detailed view of school announcements with lazy loading and back-to-top navigation
 - **app/screens/evaluations.tsx** - View evaluation results history and evaluator e-signatures
 - **app/screens/learning-materials.tsx** - Educational resources and materials
-- **app/screens/evaluation.tsx** - Detailed view of Evaluated results and evaluator e-signatures
 - **app/notifications/index.tsx** - Push notification management with Philippine time conversion and feedback handling
 
-### Modular Component Architecture (NEW!)
+### Modular Component Architecture
 
-The codebase has recently undergone a major refactoring to break down monolithic screens into highly modular, reusable, and easy-to-maintain components:
+The codebase has been refactored to break down monolithic screens into highly modular, reusable, and easy-to-maintain components:
 
-- **components/auth/** - Self-contained components for complex authentication flows (modals, validation inputs).
-- **components/evaluations/** - Sub-components explicitly handling student grade uploads and evaluation displays.
-- **components/folder/** - Reusable requirement list items and modular folder structural components.
-- **components/profile/**, **components/home/**, **components/chat/** - Dedicated component ecosystems for each major feature area, ensuring the `app/` screen files remain purely compositional.
-- **components/ui/** - Core native elements bridging React Native / iOS / Android UI primitives.
+- **components/auth/** - Self-contained components for complex authentication flows (modals, validation inputs)
+- **components/evaluations/** - Sub-components explicitly handling student grade uploads and evaluation displays
+- **components/folder/** - Reusable requirement list items and modular folder structural components
+- **components/nmat-validation-score/** - Dedicated NMAT score display ecosystem (NmatScoreCard, NmatScoreSkeleton, NmatValidationBanner)
+- **components/profile/**, **components/home/**, **components/chat/** - Dedicated component ecosystems for each major feature area
+- **components/ui/** - Core native elements bridging React Native / iOS / Android UI primitives
 
 ## Get Started
 
@@ -199,13 +257,20 @@ The codebase has recently undergone a major refactoring to break down monolithic
    npm install
    ```
 
-2. Start the development server
+2. Set up environment variables
+
+   ```bash
+   cp .env.example .env
+   # Fill in your EXPO_PUBLIC_OPENAI_API_KEY and other values
+   ```
+
+3. Start the development server
 
    ```bash
    npx expo start
    ```
 
-3. Run on device/emulator
+4. Run on device/emulator
    - Press `a` for Android emulator
    - Press `i` for iOS simulator
    - Scan QR code with Expo Go app
@@ -241,14 +306,15 @@ The codebase has recently undergone a major refactoring to break down monolithic
 - **Language**: TypeScript
 - **Styling**: NativeWind (Tailwind CSS for React Native)
 - **Navigation**: Expo Router (file-based routing)
-- **State Management**: React Context API with live data fetching
+- **State Management**: React Context API + Redux
 - **UI Components**: Custom components with Lucide React icons
 - **Image Handling**: Expo ImagePicker with fallback system
+- **NMAT Extraction**: OpenAI GPT-4o-mini Vision API
 - **Time Management**: Philippine timezone integration
 - **Data Loading**: Lazy loading and pagination support
 - **Image Analysis**: ML-powered blur detection and quality assessment
 - **Caching**: Multi-layered AsyncStorage persistence for offline-first capabilities
-- **Configuration**: Centralized API configuration management
+- **Configuration**: Centralized `EXPO_PUBLIC_*` environment variable management
 - **Testing**: Comprehensive test suite with constants-based configuration
 
 ## Features
@@ -266,10 +332,19 @@ The codebase has recently undergone a major refactoring to break down monolithic
 - 📅 Accurate calendar system with Philippine timezone support
 - 🔔 Smart notifications with feedback separation and time conversion
 
+### NMAT Validation & Extraction
+
+- 🎓 **OpenAI Vision Extraction** - GPT-4o-mini reads NMAT result documents automatically
+  - Base64 image encoding for API transmission
+  - Structured JSON response parsing (`found`, `percentile_rank`, `reason`)
+  - Pass/fail validation against `NMAT_PASSING_RATE` threshold
+  - Score card UI with skeleton loading state
+- 🔑 `EXPO_PUBLIC_OPENAI_API_KEY` — correctly prefixed for APK bundle inclusion
+
 ### Document Management & Quality Control
 
 - 🖼️ **Image Blur Analysis** - ML-powered quality check before upload
-  - Laplacian variance blur detection (threshold: ~100)
+  - Laplacian variance blur detection via `/api/app/blur-check`
   - Quality scoring system (0-100%)
   - Auto-validation with visual progress indicators
   - Prevents upload of blurry documents
@@ -283,9 +358,8 @@ The codebase has recently undergone a major refactoring to break down monolithic
 - 📊 View evaluation results history with evaluator e-signatures
 - 📚 Learning materials access and download
 - ⏰ Real-time calendar events with proper time alignment
-- 🖼️ Image viewing without loading delays
 - 🔄 Pull-to-refresh functionality across screens
-- ⚙️ Centralized configuration management
+- ⚙️ Centralized `EXPO_PUBLIC_*` configuration management
 - 🌙 Dark/Light theme support
 - 📱 Cross-platform compatibility (iOS/Android)
 
@@ -294,6 +368,7 @@ The codebase has recently undergone a major refactoring to break down monolithic
 ### Core Features
 
 - ✅ ML-powered image blur analysis for document quality control
+- ✅ NMAT percentile rank extraction via OpenAI GPT-4o-mini Vision
 - ✅ Student requirement upload system with document management
 - ✅ View evaluation results history and evaluator e-signatures
 - ✅ Secure authentication with OTP verification
@@ -308,7 +383,7 @@ The codebase has recently undergone a major refactoring to break down monolithic
 - ✅ Push notification system with feedback handling
 - ✅ File management and document organization
 - ✅ Profile management with avatar system
-- ✅ Centralized API configuration management
+- ✅ Centralized `EXPO_PUBLIC_*` API configuration management
 - ✅ Cross-platform compatibility (iOS/Android)
 - ✅ Comprehensive test suite with 100% coverage
 - ✅ NativeWind styling for consistent UI/UX
