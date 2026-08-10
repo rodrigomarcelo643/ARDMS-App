@@ -446,5 +446,3 @@ describe('Messages Screen Tests', () => {
   });
 });
 
-// Export for use in other test files
-export { describe, it, expect, beforeEach };
