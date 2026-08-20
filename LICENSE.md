@@ -1,8 +1,8 @@
 # Proprietary License Agreement
 
-**ARDMS App*  
+**MedSIS App*  
 **Version 1.0.0**  
-**Copyright © 2025 ARDMS. All Rights Reserved.**
+**Copyright © 2025 MedSIS. All Rights Reserved.**
 
 ---
 
@@ -102,12 +102,12 @@ See `package.json` for complete list of dependencies and their licenses.
 ### 13. Contact Information
 
 **License Inquiries:**
-- Email: legal@msis.eduisync.io
-- Website: https://msis.eduisync.io
+- Email: legal@swu-som.com
+- Website: https://swu-som.com
 
 **Technical Support:**
-- Email: support@msis.eduisync.io
-- Security: security@msis.eduisync.io
+- Email: support@swu-som.com
+- Security: security@swu-som.com
 
 **Institution Contact:**
 - Southwestern University PHINMA
@@ -123,8 +123,8 @@ If you do not agree to these terms, do not download, install, or use the Softwar
 
 ---
 
-**ARDMS Development Team**  
-**Academic Records and Document Management System (ARDMS)**  
+**MedSIS Development Team**  
+**Medical Student Information System**  
 **Version 1.0.0 - December 5, 2025**
 
-**Copyright © 2025 MSIS. All Rights Reserved.**
+**Copyright © 2026 MSIS. All Rights Reserved.**
