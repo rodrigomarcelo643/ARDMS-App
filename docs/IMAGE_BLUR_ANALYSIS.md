@@ -10,13 +10,13 @@ The **Image Blur Analysis** feature is an ML-powered quality control system that
 
 When a student selects an image for upload in the **Folder** screen, the system automatically performs a blur analysis before allowing the upload to proceed.
 
-### 2. ML API Analysis
+### 2. OpenAI Vision API Analysis
 
-The image is sent to the ML API endpoint (`/api/app/blur-check`) which uses **Laplacian variance** algorithm to detect blur:
+The image is analyzed directly using OpenAI Vision API (`gpt-4o-mini` with `EXPO_PUBLIC_OPENAI_API_KEY`):
 
-- **Laplacian Variance**: A computer vision technique that measures edge sharpness
-- Higher values indicate sharper images (threshold: ~100)
-- Lower values indicate blurry images
+- **Vision Analysis**: Deep visual inspection for motion blur, out-of-focus text, illegibility, and resolution quality
+- Evaluates document sharpness and clarity directly on client-side upload
+- Eliminates reliance on external Render ML service, avoiding cold-start delays or server errors
 
 ### 3. Quality Scoring
 
@@ -25,8 +25,8 @@ The analysis returns:
 | Metric | Description | Range |
 |--------|-------------|-------|
 | `is_blurry` | Boolean flag indicating if image is blurry | true/false |
-| `blur_score` | Raw Laplacian variance score | 0-1000+ |
-| `quality_score` | Normalized percentage score | 0-100% |
+| `blur_score` | Blur level percentage score | 0-100% |
+| `sharp_score` | Sharpness / clarity percentage score | 0-100% |
 
 ### 4. User Feedback
 
