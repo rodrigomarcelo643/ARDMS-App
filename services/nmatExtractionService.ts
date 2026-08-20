@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { readAsStringAsync, EncodingType } from 'expo-file-system';
 import { EXPO_OPENAI_API_KEY } from '@/constants/Config';
 
@@ -64,27 +65,18 @@ export const extractNmatPercentileFromImage = async (
       temperature: 0.1,
     };
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${keyToUse}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      payload,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${keyToUse}`,
+        },
+      }
+    );
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('NMAT Extraction HTTP error:', response.status, errText);
-      return {
-        success: false,
-        percentileRank: null,
-        found: false,
-        reason: `API returned HTTP error ${response.status}`,
-      };
-    }
-
-    const json = await response.json();
+    const json = response.data;
     const contentText = json?.choices?.[0]?.message?.content;
 
     if (!contentText) {

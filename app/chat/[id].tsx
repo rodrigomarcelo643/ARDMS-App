@@ -7,6 +7,7 @@ import { API_BASE_URL } from "@/constants/Config";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { launchImageLibraryAsync, MediaTypeOptions } from "expo-image-picker";
 import { getDocumentAsync } from "expo-document-picker";
+import { readAsStringAsync, EncodingType } from "expo-file-system";
 import { Message } from "@/@types/screens/messages";
 import { messageService } from "@/services/messageService";
 import { messageStorage } from "@/lib/messageStorage";
@@ -330,30 +331,30 @@ export default function ChatScreen() {
           },
           ...prev,
         ]);
-        const response = await fetch(result.assets[0].uri).catch(() => null);
-        if (!response) return;
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = async () => {
-          try {
-            const res = await messageService.sendMessage({
-              text: "",
-              senderId: user.id,
-              receiverId: actualUserId,
-              type: "image",
-              fileUrl: result.assets[0].uri,
-              fileData: reader.result as string,
-              fileName: "image.jpg",
-              isSeen: false,
-              recipientOnline: userOnlineStatus,
-            });
-            setMessages((prev) => prev.map((m) => (m.id === tempId ? res : m)));
-          } catch (e) {
-            setMessages((prev) => prev.filter((m) => m.id !== tempId));
-            Alert.alert("Error", "Failed to send image");
-          }
-        };
+        const base64Data = await readAsStringAsync(result.assets[0].uri, {
+          encoding: EncodingType.Base64,
+        }).catch(() => null);
+        if (!base64Data) return;
+        const mimeType = result.assets[0].mimeType || "image/jpeg";
+        const fileData = `data:${mimeType};base64,${base64Data}`;
+
+        try {
+          const res = await messageService.sendMessage({
+            text: "",
+            senderId: user.id,
+            receiverId: actualUserId,
+            type: "image",
+            fileUrl: result.assets[0].uri,
+            fileData,
+            fileName: "image.jpg",
+            isSeen: false,
+            recipientOnline: userOnlineStatus,
+          });
+          setMessages((prev) => prev.map((m) => (m.id === tempId ? res : m)));
+        } catch (e) {
+          setMessages((prev) => prev.filter((m) => m.id !== tempId));
+          Alert.alert("Error", "Failed to send image");
+        }
       }
     } catch (e) {}
   };
@@ -384,30 +385,30 @@ export default function ChatScreen() {
           },
           ...prev,
         ]);
-        const response = await fetch(result.assets[0].uri).catch(() => null);
-        if (!response) return;
-        const blob = await response.blob();
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = async () => {
-          try {
-            const res = await messageService.sendMessage({
-              text: result.assets[0].name,
-              senderId: user.id,
-              receiverId: actualUserId,
-              type: "file",
-              fileName: result.assets[0].name,
-              fileUrl: result.assets[0].uri,
-              fileData: reader.result as string,
-              isSeen: false,
-              recipientOnline: userOnlineStatus,
-            });
-            setMessages((prev) => prev.map((m) => (m.id === tempId ? res : m)));
-          } catch (e) {
-            setMessages((prev) => prev.filter((m) => m.id !== tempId));
-            Alert.alert("Error", "Failed to send document");
-          }
-        };
+        const base64Data = await readAsStringAsync(result.assets[0].uri, {
+          encoding: EncodingType.Base64,
+        }).catch(() => null);
+        if (!base64Data) return;
+        const mimeType = result.assets[0].mimeType || "application/octet-stream";
+        const fileData = `data:${mimeType};base64,${base64Data}`;
+
+        try {
+          const res = await messageService.sendMessage({
+            text: result.assets[0].name,
+            senderId: user.id,
+            receiverId: actualUserId,
+            type: "file",
+            fileName: result.assets[0].name,
+            fileUrl: result.assets[0].uri,
+            fileData,
+            isSeen: false,
+            recipientOnline: userOnlineStatus,
+          });
+          setMessages((prev) => prev.map((m) => (m.id === tempId ? res : m)));
+        } catch (e) {
+          setMessages((prev) => prev.filter((m) => m.id !== tempId));
+          Alert.alert("Error", "Failed to send document");
+        }
       }
     } catch (e) {}
   };

@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_BASE_URL } from '@/constants/Config';
+import axios from 'axios';
 import { ArrowLeft, Users } from 'lucide-react-native';
 import { messageService } from '@/services/messageService';
 import { messageStorage } from '@/lib/messageStorage';
@@ -244,12 +245,11 @@ export default function MessagesScreen() {
     const updateActiveSession = async () => {
       if (user?.id) {
         try {
-          const fetchBody = JSON.stringify({ update_session: true, user_id: user.id });
-          await fetch(`${API_BASE_URL}/api/login.php`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: fetchBody,
-          }).then((res) => res.json()).catch((err) => console.error('Error updating session:', err));
+          await axios.post(
+            `${API_BASE_URL}/api/login.php`,
+            { update_session: true, user_id: user.id },
+            { headers: { 'Content-Type': 'application/json' } }
+          );
         } catch (error) {
           console.error('Error updating session:', error);
         }
@@ -284,12 +284,11 @@ export default function MessagesScreen() {
   const updateSessionOnInteraction = async () => {
     if (user?.id) {
       try {
-        const fetchBody = JSON.stringify({ update_session: true, user_id: user.id });
-        await fetch(`${API_BASE_URL}/api/login.php`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: fetchBody,
-        }).then((res) => res.json()).catch((err) => console.error('Error updating session on interaction:', err));
+        await axios.post(
+          `${API_BASE_URL}/api/login.php`,
+          { update_session: true, user_id: user.id },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
       } catch (error) {
         console.error('Error updating session on interaction:', error);
       }

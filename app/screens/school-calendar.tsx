@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { API_BASE_URL } from '@/constants/Config';
+import axios from "axios";
 import * as FileSystem from "expo-file-system";
 import * as IntentLauncher from "expo-intent-launcher";
 import { useRouter } from "expo-router";
@@ -96,18 +97,11 @@ const SchoolCalendar: React.FC = () => {
         throw new Error("User ID not found");
       }
 
-      const response = await fetch(
+      const response = await axios.get<SchoolCalendarResponse>(
         `${API_BASE_URL}/api/school-calendar/get_school_calendar.php?user_id=${user.id}`
       );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Server error: ${response.status} ${response.statusText}. ${errorText}`
-        );
-      }
-
-      const data: SchoolCalendarResponse = await response.json();
+      const data = response.data;
 
       if (!data.success) {
         throw new Error(data.error || "Failed to fetch calendar data");

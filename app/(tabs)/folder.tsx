@@ -411,19 +411,18 @@ export default function FolderScreen() {
 
       console.log("Uploading to:", `${API_BASE_URL}/api/upload_requirement.php`);
       
-      const response = await fetch(`${API_BASE_URL}/api/upload_requirement.php`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/api/upload_requirement.php`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Accept: 'application/json',
+          },
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = response.data;
 
       console.log("Upload Response:", data);
 

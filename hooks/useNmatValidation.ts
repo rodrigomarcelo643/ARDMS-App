@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import axios from 'axios';
 import { NmatValidationState, NmatValidationResult, NmatScore, NMAT_PASSING_RATE } from '@/@types/screens/nmat-validation';
 import { API_BASE_URL } from '@/constants/Config';
 
@@ -22,8 +23,8 @@ export const useNmatValidation = () => {
   const fetchNmatScore = useCallback(async (studentId: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     try {
-      const response = await fetch(`${API_BASE_URL}/nmat-score/${studentId}`);
-      const json = await response.json();
+      const response = await axios.get(`${API_BASE_URL}/nmat-score/${studentId}`);
+      const json = response.data;
 
       if (!json.success) {
         setState(prev => ({ ...prev, loading: false, error: json.message || 'Failed to fetch NMAT score' }));
@@ -33,7 +34,7 @@ export const useNmatValidation = () => {
       const result = validateScore(json.data as NmatScore);
       setState({ data: result, loading: false, error: null });
     } catch (err: any) {
-      setState(prev => ({ ...prev, loading: false, error: err.message || 'Unexpected error' }));
+      setState(prev => ({ ...prev, loading: false, error: err.response?.data?.message || err.message || 'Unexpected error' }));
     }
   }, [validateScore]);
 

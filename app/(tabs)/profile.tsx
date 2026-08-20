@@ -135,21 +135,18 @@ export default function ProfileScreen() {
 
     if (showLoading) setIsLoading(true);
     try {
-      const requestBody = JSON.stringify({ user_id: uid, live_fetch: forceLiveFetch || !hasInitiallyFetched });
-      const response = await fetch(`${API_URL}/get_user_data.php`, {
-        method: 'POST',
-        body: requestBody,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      }).then(res => res).catch(err => { throw err; });
+      const response = await axios.post(
+        `${API_URL}/get_user_data.php`,
+        { user_id: uid, live_fetch: forceLiveFetch || !hasInitiallyFetched },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = response.data;
 
       if (data.success && data.user) {
         setUserData(data.user);
@@ -305,19 +302,18 @@ export default function ProfileScreen() {
       console.log("Updating profile at:", `${API_URL}/update_profile_student.php`);
       console.log("Payload keys:", Object.keys(changes), "Has Image:", !!selectedImage);
 
-      const response = await fetch(`${API_URL}/update_profile_student.php`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json',
-        },
-      }).then(res => res).catch(err => { throw err; });
+      const response = await axios.post(
+        `${API_URL}/update_profile_student.php`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Accept: 'application/json',
+          },
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = response.data;
       console.log("Profile Update Response:", data);
 
       if (data.success) {

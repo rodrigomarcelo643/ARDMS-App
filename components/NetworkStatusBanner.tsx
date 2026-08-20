@@ -3,6 +3,7 @@ import { View, Text, Animated, Platform, AppState, LayoutChangeEvent } from 'rea
 import { WifiOff, AlertTriangle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNetworkBanner } from '@/contexts/NetworkContext';
+import axios from 'axios';
 
 type NetworkStatus = 'connected' | 'slow' | 'offline';
 
@@ -23,16 +24,10 @@ export default function NetworkStatusBanner() {
 
   const checkNetwork = async () => {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), PING_TIMEOUT_MS);
-
       const start = Date.now();
-      const response = await fetch(PING_URL, {
-        method: 'HEAD',
-        cache: 'no-store',
-        signal: controller.signal,
-      }).then((res) => res).catch(() => null);
-      clearTimeout(timeout);
+      const response = await axios.head(PING_URL, {
+        timeout: PING_TIMEOUT_MS,
+      }).catch(() => null);
 
       const latency = Date.now() - start;
 

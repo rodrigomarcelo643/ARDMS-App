@@ -136,19 +136,18 @@ const GradeUploadModal: React.FC<Props> = ({
 
       console.log("Uploading Grade Image to:", `${API_BASE_URL}/api/grade_uploads/upload_grade_image.php`);
 
-      const response = await fetch(`${API_BASE_URL}/api/grade_uploads/upload_grade_image.php`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/api/grade_uploads/upload_grade_image.php`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Accept: 'application/json',
+          },
+        }
+      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = response.data;
       console.log("Grade Upload Response:", data);
 
       if (data.success) {
