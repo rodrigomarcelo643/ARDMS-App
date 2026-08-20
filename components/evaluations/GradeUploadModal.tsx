@@ -1,6 +1,7 @@
 import { GradeImage } from '@/@types/tabs';
 import { BlurErrorModal, ProgressModal } from '@/components/folder/FolderModals';
-import { API_BASE_URL, ML_API_BASE_URL } from '@/constants/Config';
+import { API_BASE_URL } from '@/constants/Config';
+import { checkImageBlurWithOpenAI } from '@/services/imageAnalysisService';
 import { useThemeColor } from '@/hooks/useThemeColor';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
@@ -64,38 +65,8 @@ const GradeUploadModal: React.FC<Props> = ({
   // Full screen preview state
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  const checkImageBlur = async (uri: string, fileName: string, mimeType: string) => {
-    try {
-      const formData = new FormData();
-      formData.append('file', {
-        uri: uri,
-        name: fileName || `blur_check_${Date.now()}.jpg`,
-        type: mimeType || 'image/jpeg',
-      } as any);
-
-      console.log("Calling ML Blur Check (Fetch):", `${ML_API_BASE_URL}/api/app/blur-check`);
-
-      const response = await fetch(`${ML_API_BASE_URL}/api/app/blur-check`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const rawScore = typeof data?.blur_score === 'number' ? data.blur_score : 0;
-      const isBlurry = data?.is_blurry === true;
-
-      const sharpScore = Math.min(100, Math.round((rawScore / 1000) * 100));
-      const blurScore = 100 - sharpScore;
-
-      return { isBlurry, blurScore, sharpScore };
-    } catch (error) {
-      console.error('Blur check error:', error);
-      return { isBlurry: false, blurScore: 0, sharpScore: 100 };
-    }
+  const checkImageBlur = async (uri: string) => {
+    return await checkImageBlurWithOpenAI(uri);
   };
 
   const reset = () => {
@@ -130,7 +101,7 @@ const GradeUploadModal: React.FC<Props> = ({
       const assetFileName = asset.fileName ?? `grade_image_${Date.now()}.` + (asset.uri.split('.').pop() ?? 'jpg');
       const assetMimeType = asset.mimeType ?? 'image/jpeg';
 
-      const { isBlurry, blurScore, sharpScore } = await checkImageBlur(asset.uri, assetFileName, assetMimeType);
+      const { isBlurry, blurScore, sharpScore } = await checkImageBlur(asset.uri);
       setCheckingBlur(false);
 
       setBlurPercentage(blurScore);
