@@ -1,5 +1,6 @@
-import { API_BASE_URL, ML_API_BASE_URL, EXPO_OPENAI_API_KEY } from '@/constants/Config';
+import { API_BASE_URL, EXPO_OPENAI_API_KEY } from '@/constants/Config';
 import { extractNmatPercentileFromImage } from '@/services/nmatExtractionService';
+import { checkImageBlurWithOpenAI } from '@/services/imageAnalysisService';
 
 export const isNmatRequirement = (reqName: string): boolean => {
   if (!reqName) return false;
@@ -329,38 +330,9 @@ export default function FolderScreen() {
     }
   };
 
-  // Check image blur via ML API
+  // Check image blur via OpenAI Vision API
   const checkImageBlur = async (fileInfo: FileInfo): Promise<{ isBlurry: boolean; blurScore: number; sharpScore: number }> => {
-    try {
-      const formData = new FormData();
-      formData.append('file', {
-        uri: fileInfo.uri,
-        name: fileInfo.name,
-        type: fileInfo.mimeType || 'image/jpeg',
-      } as unknown as Blob);
-
-      console.log("Calling ML Blur Check (Simple Fetch):", `${ML_API_BASE_URL}/api/app/blur-check`);
-
-      const response = await fetch(`${ML_API_BASE_URL}/api/app/blur-check`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const rawScore: number = typeof data?.blur_score === 'number' ? data.blur_score : 0;
-      const isBlurry: boolean = data?.is_blurry === true;
-      const sharpScore = Math.min(100, Math.round((rawScore / 1000) * 100));
-      const blurScore = 100 - sharpScore;
-
-      return { isBlurry, blurScore, sharpScore };
-    } catch (err) {
-      console.error('Folder blur check error:', err);
-      return { isBlurry: false, blurScore: 0, sharpScore: 100 };
-    }
+    return await checkImageBlurWithOpenAI(fileInfo.uri);
   };
 
   // Pick image file
