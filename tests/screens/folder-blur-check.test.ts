@@ -1,7 +1,4 @@
 // Test utilities without Jest dependencies
-import axios from 'axios';
-import { ML_API_BASE_URL } from '@/constants/Config';
-
 const expect = (actual: any) => ({
   toBe: (expected: any) => actual === expected,
   toBeGreaterThanOrEqual: (n: number) => actual >= n,
@@ -14,178 +11,95 @@ const describe = (name: string, fn: () => void) => fn();
 const it = (name: string, fn: () => void | Promise<void>) => fn();
 const beforeEach = (fn: () => void) => fn();
 
-// Mirrors the checkImageBlur logic from folder.tsx
-async function checkImageBlur(mockResponse: any): Promise<number> {
-  const data = mockResponse;
+// Mirrors the OpenAI Vision blur response parsing logic from imageAnalysisService.ts
+export function parseOpenAIBlurResponse(parsed: any): { isBlurry: boolean; blurScore: number; sharpScore: number; reason?: string } {
+  let blurScore = typeof parsed?.blur_score === 'number' ? Math.round(parsed.blur_score) : 0;
+  let sharpScore = typeof parsed?.sharp_score === 'number' ? Math.round(parsed.sharp_score) : (100 - blurScore);
 
-  if (data?.predictions && Array.isArray(data.predictions)) {
-    const blurPred = data.predictions.find((p: any) =>
-      p.label?.toLowerCase().includes('blur')
-    );
-    return blurPred ? Math.round(blurPred.confidence * 100) : 0;
+  blurScore = Math.max(0, Math.min(100, blurScore));
+  sharpScore = Math.max(0, Math.min(100, sharpScore));
+
+  const isBlurry = parsed?.is_blurry === true || blurScore > 40;
+
+  if (isBlurry && blurScore <= 40) {
+    blurScore = 60;
+    sharpScore = 40;
+  } else if (!isBlurry && blurScore > 40) {
+    blurScore = 20;
+    sharpScore = 80;
   }
 
-  if (typeof data?.blur_percentage === 'number') {
-    return Math.round(data.blur_percentage);
-  }
-
-  return 0;
+  return {
+    isBlurry,
+    blurScore,
+    sharpScore,
+    reason: parsed?.reason,
+  };
 }
 
-describe('Folder Screen - Image Blur Check Tests', () => {
-  let mockAxios: any;
-
-  beforeEach(() => {
-    mockAxios = { mockResolvedValueOnce: () => {}, mockRejectedValueOnce: () => {} };
-    // Simple mock implementation without Jest
-    axios.get = async (url: string) => {
-      if (mockAxios.mockResolvedValueOnce) {
-        const mock = mockAxios.mockResolvedValueOnce;
-        if (typeof mock === 'function') {
-          return await mock(url);
-        }
-      }
-      return { data: {} };
-    };
-  });
-
-  describe('ML API /api/review Endpoint', () => {
-    it('should pass - ML API health check returns active status', async () => {
-      const mockResponse = { service: 'Image Review Agent API', status: 'active' };
-
-      mockAxios.mockResolvedValueOnce = async () => ({
-        data: mockResponse,
-      });
-
-      const response = await axios.get(`${ML_API_BASE_URL}/api/health`);
-      const data = response.data;
-
-      expect(data.status).toBe('active');
-    });
-
-    it('should pass - blurry image returns high blur confidence via predictions array', async () => {
-      const mockResponse = {
-        predictions: [
-          { label: 'Blurry', confidence: 0.87 },
-          { label: 'Sharp', confidence: 0.13 },
-        ],
+describe('Folder Screen - OpenAI Vision Blur Check Tests', () => {
+  describe('OpenAI Vision API Blur Analysis Parser', () => {
+    it('should pass - blurry image returns isBlurry: true with high blurScore', () => {
+      const mockOpenAIJson = {
+        is_blurry: true,
+        blur_score: 78,
+        sharp_score: 22,
+        reason: 'Document text is out of focus and smudged',
       };
 
-      const blurPct = await checkImageBlur(mockResponse);
+      const result = parseOpenAIBlurResponse(mockOpenAIJson);
 
-      expect(blurPct).toBe(87);
-      expect(blurPct).toBeGreaterThanOrEqual(50); // triggers blur modal
+      expect(result.isBlurry).toBe(true);
+      expect(result.blurScore).toBe(78);
+      expect(result.sharpScore).toBe(22);
     });
 
-    it('should pass - sharp image returns low blur confidence via predictions array', async () => {
-      const mockResponse = {
-        predictions: [
-          { label: 'Blurry', confidence: 0.12 },
-          { label: 'Sharp', confidence: 0.88 },
-        ],
+    it('should pass - sharp image returns isBlurry: false with low blurScore', () => {
+      const mockOpenAIJson = {
+        is_blurry: false,
+        blur_score: 15,
+        sharp_score: 85,
+        reason: 'Document text is crisp and fully legible',
       };
 
-      const blurPct = await checkImageBlur(mockResponse);
+      const result = parseOpenAIBlurResponse(mockOpenAIJson);
 
-      expect(blurPct).toBe(12);
-      expect(blurPct).toBeLessThan(50); // upload proceeds normally
+      expect(result.isBlurry).toBe(false);
+      expect(result.blurScore).toBe(15);
+      expect(result.sharpScore).toBe(85);
     });
 
-    it('should pass - blurry image returns high value via blur_percentage format', async () => {
-      const mockResponse = { blur_percentage: 73 };
-
-      const blurPct = await checkImageBlur(mockResponse);
-
-      expect(blurPct).toBe(73);
-      expect(blurPct).toBeGreaterThanOrEqual(50);
-    });
-
-    it('should pass - sharp image returns low value via blur_percentage format', async () => {
-      const mockResponse = { blur_percentage: 18 };
-
-      const blurPct = await checkImageBlur(mockResponse);
-
-      expect(blurPct).toBe(18);
-      expect(blurPct).toBeLessThan(50);
-    });
-
-    it('should pass - exactly at threshold (50%) triggers blur modal', async () => {
-      const mockResponse = {
-        predictions: [{ label: 'Blurry', confidence: 0.5 }],
+    it('should pass - blur score > 40 triggers isBlurry: true', () => {
+      const mockOpenAIJson = {
+        is_blurry: false,
+        blur_score: 45,
+        sharp_score: 55,
       };
 
-      const blurPct = await checkImageBlur(mockResponse);
-      const shouldBlock = blurPct >= 50;
+      const result = parseOpenAIBlurResponse(mockOpenAIJson);
 
-      expect(shouldBlock).toBe(true);
+      expect(result.isBlurry).toBe(true);
     });
 
-    it('should pass - just below threshold (49%) allows upload', async () => {
-      const mockResponse = {
-        predictions: [{ label: 'Blurry', confidence: 0.49 }],
+    it('should pass - blur score <= 40 with is_blurry: false allows upload', () => {
+      const mockOpenAIJson = {
+        is_blurry: false,
+        blur_score: 25,
+        sharp_score: 75,
       };
 
-      const blurPct = await checkImageBlur(mockResponse);
-      const shouldBlock = blurPct >= 50;
+      const result = parseOpenAIBlurResponse(mockOpenAIJson);
 
-      expect(shouldBlock).toBe(false);
+      expect(result.isBlurry).toBe(false);
+      expect(result.blurScore <= 40).toBe(true);
     });
 
-    it('should pass - unknown/empty response defaults to 0 (no block)', async () => {
-      const mockResponse = {};
+    it('should pass - empty response defaults safely to clear image', () => {
+      const result = parseOpenAIBlurResponse({});
 
-      const blurPct = await checkImageBlur(mockResponse);
-
-      expect(blurPct).toBe(0);
-      expect(blurPct).toBeLessThan(50);
-    });
-
-    it('should pass - no blur label in predictions defaults to 0', async () => {
-      const mockResponse = {
-        predictions: [
-          { label: 'Sharp', confidence: 0.95 },
-          { label: 'Clear', confidence: 0.05 },
-        ],
-      };
-
-      const blurPct = await checkImageBlur(mockResponse);
-
-      expect(blurPct).toBe(0);
-    });
-
-    it('should fail - network error during blur check is handled gracefully', async () => {
-      mockAxios.mockRejectedValueOnce = async () => {
-        throw new Error('Network error');
-      };
-
-      try {
-        await axios.get(`${ML_API_BASE_URL}/api/review`);
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe('Network error');
-        // checkImageBlur catches this and returns 0, so upload is not blocked
-      }
-    });
-
-    it('should pass - /api/review endpoint is listed in ML API endpoints', async () => {
-      const mockResponse = {
-        service: 'Image Review Agent API',
-        status: 'active',
-        endpoints: {
-          review: '/api/review',
-          app_blur_check: '/api/app/blur-check',
-          health: '/api/health',
-        },
-      };
-
-      mockAxios.mockResolvedValueOnce = async () => ({
-        data: mockResponse,
-      });
-
-      const response = await axios.get(`${ML_API_BASE_URL}/api/health`);
-      const data = response.data;
-
-      expect(data.endpoints.review).toBe('/api/review');
+      expect(result.isBlurry).toBe(false);
+      expect(result.blurScore).toBe(0);
+      expect(result.sharpScore).toBe(100);
     });
   });
 
