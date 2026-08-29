@@ -8,15 +8,16 @@ import {
   Calendar,
   ClipboardList,
   FolderOpen,
+  RotateCcw,
   Upload,
   X,
 } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   Text,
@@ -43,27 +44,24 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      text: `Hi ${user?.first_name}! I'm your MedSIS AI Assistant. How can I help you with your medical studies, evaluations, calendar, learning materials, or requirements today?`,
+      text: `Hi ${user?.first_name || 'Student'}! I'm your MedSIS AI Assistant. How can I help you with your academic evaluator, secretary office, semester requirements, grades, or calendar today?`,
       sender: "bot",
       timestamp: new Date(),
     },
   ]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
   const [currentContext, setCurrentContext] = useState("general");
   const [inputHeight, setInputHeight] = useState(0);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+
   const flatListRef = useRef<FlatList>(null);
-  const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const inputScrollRef = useRef<ScrollView>(null);
 
   // Initialize services
   useEffect(() => {
     return () => {
-      if (typingIntervalRef.current) {
-        clearInterval(typingIntervalRef.current);
-      }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -117,7 +115,6 @@ export default function AIAssistant() {
       action: "folders",
       context: "folders",
     },
-
   ];
 
   useEffect(() => {
@@ -135,62 +132,11 @@ export default function AIAssistant() {
   }, [inputHeight, inputText]);
 
   const stopGeneration = () => {
-    if (typingIntervalRef.current) {
-      clearInterval(typingIntervalRef.current);
-      typingIntervalRef.current = null;
-    }
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    setIsTyping(false);
     setIsLoading(false);
-    setMessages((prev) => {
-      const lastMessage = prev[prev.length - 1];
-      if (lastMessage && lastMessage.sender === "bot" && lastMessage.isTyping) {
-        return prev.map((msg) =>
-          msg.id === lastMessage.id ? { ...msg, isTyping: false } : msg,
-        );
-      }
-      return prev;
-    });
-  };
-
-  const simulateTyping = (fullText: string, messageId: string) => {
-    let currentIndex = 0;
-    const typingSpeed = 0.5;
-    if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-    setIsTyping(true);
-    return new Promise<void>((resolve) => {
-      typingIntervalRef.current = setInterval(() => {
-        if (currentIndex <= fullText.length) {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === messageId
-                ? {
-                    ...msg,
-                    text: fullText.substring(0, currentIndex),
-                    isTyping: currentIndex < fullText.length,
-                  }
-                : msg,
-            ),
-          );
-          currentIndex++;
-        } else {
-          if (typingIntervalRef.current) {
-            clearInterval(typingIntervalRef.current);
-            typingIntervalRef.current = null;
-          }
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === messageId ? { ...msg, isTyping: false } : msg,
-            ),
-          );
-          setIsTyping(false);
-          resolve();
-        }
-      }, typingSpeed);
-    });
   };
 
   const getAIResponse = async (
@@ -214,13 +160,13 @@ export default function AIAssistant() {
           timeout: 30000,
         },
       );
-      if (response.data.success)
+      if (response.data && response.data.success)
         return {
           text: response.data.response,
           context: response.data.context || context,
         };
       return {
-        text: response.data.message || "Trouble connecting. Try again.",
+        text: response.data?.message || "Trouble connecting. Try again.",
         context: null,
       };
     } catch (error: any) {
@@ -236,9 +182,10 @@ export default function AIAssistant() {
 
   const handleSend = async () => {
     if (!inputText.trim() || isLoading) return;
+    const queryText = inputText.trim();
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputText.trim(),
+      text: queryText,
       sender: "user",
       timestamp: new Date(),
     };
@@ -247,21 +194,28 @@ export default function AIAssistant() {
     setInputHeight(0);
     setIsLoading(true);
     try {
-      const response = await getAIResponse(inputText, currentContext);
+      const response = await getAIResponse(queryText, currentContext);
       if (!response.text) return;
-      const botMessageId = (Date.now() + 1).toString();
       const botMessage: Message = {
-        id: botMessageId,
-        text: "",
+        id: (Date.now() + 1).toString(),
+        text: response.text,
         sender: "bot",
         timestamp: new Date(),
-        isTyping: true,
+        isTyping: false,
         context: response.context,
       };
       setMessages((prev) => [...prev, botMessage]);
-      await simulateTyping(response.text, botMessageId);
     } catch (error) {
-      Alert.alert("Error", "Failed to get response");
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          text: "I'm having a brief issue accessing records. Please try again.",
+          sender: "bot",
+          timestamp: new Date(),
+          isTyping: false,
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -289,19 +243,26 @@ export default function AIAssistant() {
     try {
       const response = await getAIResponse(messageText, context);
       if (!response.text) return;
-      const botMessageId = (Date.now() + 1).toString();
       const botMessage: Message = {
-        id: botMessageId,
-        text: "",
+        id: (Date.now() + 1).toString(),
+        text: response.text,
         sender: "bot",
         timestamp: new Date(),
-        isTyping: true,
+        isTyping: false,
         context: response.context,
       };
       setMessages((prev) => [...prev, botMessage]);
-      await simulateTyping(response.text, botMessageId);
     } catch (error) {
-      Alert.alert("Error", "Failed to get response");
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          text: "I'm having a brief issue accessing records. Please try again.",
+          sender: "bot",
+          timestamp: new Date(),
+          isTyping: false,
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -309,28 +270,20 @@ export default function AIAssistant() {
 
   const handleClearChat = () => {
     if (messages.length <= 1) return;
-    Alert.alert(
-      "New Chat",
-      "Are you sure you want to clear the conversation and start a new session?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Start New Chat",
-          style: "destructive",
-          onPress: () => {
-            stopGeneration();
-            setMessages([
-              {
-                id: Date.now().toString(),
-                text: `Hi ${user?.first_name || 'Student'}! I'm your MedSIS AI Assistant. How can I help you with your academic evaluator, secretary office, semester requirements, grades, or calendar today?`,
-                sender: "bot",
-                timestamp: new Date(),
-              },
-            ]);
-          },
-        },
-      ]
-    );
+    setShowNewChatModal(true);
+  };
+
+  const confirmNewChat = () => {
+    stopGeneration();
+    setShowNewChatModal(false);
+    setMessages([
+      {
+        id: Date.now().toString(),
+        text: `Hi ${user?.first_name || "Student"}! I'm your MedSIS AI Assistant. How can I help you with your academic evaluator, secretary office, semester requirements, grades, or calendar today?`,
+        sender: "bot",
+        timestamp: new Date(),
+      },
+    ]);
   };
 
   const handleSelectSuggestion = async (text: string) => {
@@ -346,19 +299,26 @@ export default function AIAssistant() {
     try {
       const response = await getAIResponse(text, "general");
       if (!response.text) return;
-      const botMessageId = (Date.now() + 1).toString();
       const botMessage: Message = {
-        id: botMessageId,
-        text: "",
+        id: (Date.now() + 1).toString(),
+        text: response.text,
         sender: "bot",
         timestamp: new Date(),
-        isTyping: true,
+        isTyping: false,
         context: response.context,
       };
       setMessages((prev) => [...prev, botMessage]);
-      await simulateTyping(response.text, botMessageId);
     } catch (error) {
-      Alert.alert("Error", "Failed to get response");
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          text: "I'm having a brief issue accessing records. Please try again.",
+          sender: "bot",
+          timestamp: new Date(),
+          isTyping: false,
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -425,24 +385,24 @@ export default function AIAssistant() {
             isLoading ? (
               <View className="flex-row justify-start mb-4">
                 <View className="flex-row max-w-[85%]">
-                  <View className="w-10 h-10 rounded-full bg-[#2563EB] items-center justify-center mx-2">
+                  <View className="w-9 h-9 rounded-full bg-[#af1616] items-center justify-center mx-2">
                     <Text className="text-white font-bold text-xs">AI</Text>
                   </View>
-                  <View className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3 flex-row items-center">
+                  <View className="bg-gray-100 dark:bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3 flex-row items-center">
                     <ActivityIndicator
                       size="small"
-                      color="#2563EB"
-                      className="mr-2"
+                      color="#af1616"
+                      style={{ marginRight: 8 }}
                     />
-                    <Text className="text-gray-500 text-sm">Thinking...</Text>
-                    {isTyping && (
-                      <TouchableOpacity
-                        onPress={stopGeneration}
-                        className="ml-3 bg-gray-200 rounded-full p-1"
-                      >
-                        <X size={14} color="#666" />
-                      </TouchableOpacity>
-                    )}
+                    <Text className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+                      Thinking...
+                    </Text>
+                    <TouchableOpacity
+                      onPress={stopGeneration}
+                      className="ml-3 bg-gray-200 dark:bg-gray-700 rounded-full p-1"
+                    >
+                      <X size={13} color="#666" />
+                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
@@ -466,6 +426,51 @@ export default function AIAssistant() {
           borderColor={borderColor}
         />
       </KeyboardAvoidingView>
+
+      {/* Real Custom New Chat Confirmation Modal */}
+      <Modal
+        visible={showNewChatModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNewChatModal(false)}
+      >
+        <View className="flex-1 bg-black/60 justify-center items-center px-6">
+          <View
+            className="w-full max-w-sm rounded-3xl p-6 shadow-2xl border"
+            style={{ backgroundColor: cardColor, borderColor: borderColor }}
+          >
+            <View className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/50 items-center justify-center mb-4 self-center">
+              <RotateCcw size={24} color="#af1616" />
+            </View>
+            <Text className="text-lg font-bold text-center mb-2" style={{ color: textColor }}>
+              Start New Chat Session?
+            </Text>
+            <Text className="text-xs text-center text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+              This will reset your current conversation. You can ask about your evaluator, secretary office, grades, or documents fresh.
+            </Text>
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setShowNewChatModal(false)}
+                className="flex-1 py-3 rounded-xl border border-gray-300 dark:border-gray-700 items-center"
+                activeOpacity={0.7}
+              >
+                <Text className="font-semibold text-sm" style={{ color: mutedColor }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmNewChat}
+                className="flex-1 py-3 rounded-xl bg-[#af1616] items-center shadow-sm"
+                activeOpacity={0.8}
+              >
+                <Text className="font-bold text-sm text-white">
+                  New Chat
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
