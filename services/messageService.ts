@@ -1,9 +1,8 @@
 // Message API service with real backend integration
-import { Platform } from 'react-native';
+import { GetUsersResponse, Message, SendMessageRequest, User } from '@/@types/screens/messages';
 import { API_BASE_URL } from '@/constants/Config';
-import { User, Message, GetUsersResponse, SendMessageRequest } from '@/@types/screens/messages';
-import axios from 'axios';
 import { messageStorage } from '@/lib/messageStorage';
+import axios from 'axios';
 
 const API_BASE = `${API_BASE_URL}/api/messages`;
 
@@ -16,7 +15,7 @@ export const messageService = {
   ): Promise<GetUsersResponse> => {
     try {
       const url = `${API_BASE}/get_users.php?current_user_id=${userId}`;
-      //console.log('🚀 Frontend: Calling getActiveUsers API:', url);
+      //console.log('Frontend: Calling getActiveUsers API:', url);
 
       const response = await axios.get(
         `${API_BASE}/get_users.php?current_user_id=${userId}`,
@@ -30,7 +29,7 @@ export const messageService = {
       );
 
       const data = response.data;
-      /*console.log('📊 Frontend: Parsed response data:', {
+      /*console.log('Frontend: Parsed response data:', {
         hasError: !!data.error,
         error: data.error,
         userCount: data.users?.length || 0,
@@ -47,8 +46,8 @@ export const messageService = {
 
         const onlineUsers = data.users.filter((u: any) => u.isOnline === true);
         const offlineUsers = data.users.filter((u: any) => u.isOnline === false);
-        // console.log('🟢 Online users found:', onlineUsers.length);
-        //console.log('🔴 Offline users found:', offlineUsers.length);
+        // console.log('Online users found:', onlineUsers.length);
+        //console.log('Offline users found:', offlineUsers.length);
         onlineUsers.forEach((u: any) => {
           console.log(`   ${u.name} (${u.user_type}) - Online: ${u.isOnline} (type: ${typeof u.isOnline})`);
         });
@@ -61,7 +60,7 @@ export const messageService = {
       const usersWithAvatars = users.filter((u: User) => u.avatar_url);
       const usersWithoutAvatars = users.filter((u: User) => !u.avatar_url);
 
-      /*console.log('🖼️ Frontend: Avatar analysis:', {
+      /*console.log('Frontend: Avatar analysis:', {
         totalUsers: users.length,
         withAvatars: usersWithAvatars.length,
         withoutAvatars: usersWithoutAvatars.length
@@ -69,7 +68,7 @@ export const messageService = {
       */
 
       users.forEach((user: User, index: number) => {
-        console.log(`👤 Frontend: User #${index + 1}:`, {
+        console.log(`Frontend: User #${index + 1}:`, {
           id: user.id,
           name: user.name,
           userType: user.user_type,
@@ -85,7 +84,7 @@ export const messageService = {
 
       return { users, hasMore: false };
     } catch (error) {
-      console.error('❌ Frontend Error in getActiveUsers:', error);
+      console.error(' Frontend Error in getActiveUsers:', error);
       // Return cached data if available
       const cachedUsers = await messageStorage.getActiveUsers(userId);
       return { users: cachedUsers || [], hasMore: false };
@@ -127,7 +126,7 @@ export const messageService = {
 
       return { users, hasMore: false };
     } catch (error) {
-      console.error('❌ Error in getConversations:', error);
+      console.error(' Error in getConversations:', error);
       // Return cached data if available
       const cachedConversations = await messageStorage.getConversations(userId);
       return { users: cachedConversations || [], hasMore: false };
@@ -181,6 +180,10 @@ export const messageService = {
         fileData: message.fileData,
         fileName: message.fileName,
         recipient_online: message.recipientOnline,
+        reply_to_id: message.replyToId,
+        reply_to_text: message.replyToText,
+        reply_to_sender_name: message.replyToSenderName,
+        reply_to_type: message.replyToType,
       },
       {
         timeout: 15000,
@@ -196,7 +199,7 @@ export const messageService = {
 
     // Send push notification only to receiver (not sender)
     try {
-      console.log('🔔 Sending push notification to receiver only...');
+      console.log('Sending push notification to receiver only...');
 
       const pushResponse = await axios.post(`${API_BASE_URL}/api/send_push_notification.php`, {
         type: 'message',
@@ -205,9 +208,9 @@ export const messageService = {
         message: message.text,
         sender_name: senderName || 'Someone',
       });
-      console.log('✅ Push notification sent to receiver:', pushResponse.data);
+      console.log('Push notification sent to receiver:', pushResponse.data);
     } catch (error: any) {
-      console.error('❌ Failed to send push notification:', error.response?.data || error.message);
+      console.error(' Failed to send push notification:', error.response?.data || error.message);
     }
 
     return {

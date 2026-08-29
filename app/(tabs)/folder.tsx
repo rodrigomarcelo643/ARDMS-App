@@ -1,9 +1,16 @@
 import { API_BASE_URL, EXPO_OPENAI_API_KEY } from '@/constants/Config';
 import { extractNmatPercentileFromImage } from '@/services/nmatExtractionService';
-import { checkImageBlurWithOpenAI } from '@/services/imageAnalysisService';
+import { checkImageBlurWithOpenAI, validateDocumentWithOpenAI } from '@/services/imageAnalysisService';
+
+export const isWaiverRequirement = (reqName: string): boolean => {
+  if (!reqName) return false;
+  const lower = reqName.toLowerCase();
+  return lower.includes('undertaking') || lower.includes('waiver') || lower.includes('quit claim') || lower.includes('quitclaim');
+};
 
 export const isNmatRequirement = (reqName: string): boolean => {
   if (!reqName) return false;
+  if (isWaiverRequirement(reqName)) return false;
   const lower = reqName.toLowerCase();
   return lower.includes('nmat') || lower.includes('percentile rank') || lower.includes('percentile');
 };
@@ -38,6 +45,7 @@ import { FolderHeader } from "@/components/folder/FolderHeader";
 import {
   BlurErrorModal,
   ConfirmModal,
+  DocumentMismatchModal,
   FileTypeModal,
   ImageViewModal,
   NmatResultModal,
@@ -87,6 +95,15 @@ export default function FolderScreen() {
   // Feedback modal state
   const [showFeedbackModal, setShowFeedbackModal] = useState<boolean>(false);
   const [selectedFeedback, setSelectedFeedback] = useState<string>("");
+
+  // Mismatch modal state
+  const [showMismatchModal, setShowMismatchModal] = useState<boolean>(false);
+  const [mismatchData, setMismatchData] = useState<{
+    targetRequirement: string;
+    detectedTitle?: string;
+    mismatchReason?: string;
+  }>({ targetRequirement: '' });
+  const [verifyingDocument, setVerifyingDocument] = useState<boolean>(false);
 
   // Blur check modal state
   const [checkingBlur, setCheckingBlur] = useState<boolean>(false);
@@ -144,11 +161,16 @@ export default function FolderScreen() {
       if (response.data.success) {
         const transformedRequirements = response.data.requirements.map(
           (req: Record<string, unknown>) => ({
-            id: req.id as string,
-            name: req.name as string,
+            id: String(req.id),
+            name: (req.name as string) || '',
             completed: (req.completed as boolean) || false,
             file_count: (req.file_count as number) || 1,
             uploadedFiles: (req.uploaded_files as UploadedFile[]) || [],
+            is_waiver: (req.is_waiver as boolean) || false,
+            is_exempted: (req.is_exempted as boolean) || false,
+            is_optional: (req.is_optional as boolean) || false,
+            exemption_label: (req.exemption_label as string) || null,
+            compliance_status: (req.compliance_status as string) || 'missing',
           })
         );
 
@@ -191,11 +213,16 @@ export default function FolderScreen() {
       if (response.data.success) {
         const transformedRequirements = response.data.requirements.map(
           (req: Record<string, unknown>) => ({
-            id: req.id as string,
-            name: req.name as string,
+            id: String(req.id),
+            name: (req.name as string) || '',
             completed: (req.completed as boolean) || false,
             file_count: (req.file_count as number) || 1,
             uploadedFiles: (req.uploaded_files as UploadedFile[]) || [],
+            is_waiver: (req.is_waiver as boolean) || false,
+            is_exempted: (req.is_exempted as boolean) || false,
+            is_optional: (req.is_optional as boolean) || false,
+            exemption_label: (req.exemption_label as string) || null,
+            compliance_status: (req.compliance_status as string) || 'missing',
           })
         );
 
@@ -217,16 +244,17 @@ export default function FolderScreen() {
     fetchRequirements();
   };
 
-  // Stats
-  const completedCount = requirements.filter((req) => req.completed).length;
+  // Stats (exempted requirements count as completed)
+  const completedCount = requirements.filter((req) => req.completed || req.is_exempted).length;
   const totalCount = requirements.length;
   const completionPercentage =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   // Filtered and searched requirements
   const filteredRequirements = requirements.filter((req) => {
-    if (filter === "completed" && !req.completed) return false;
-    if (filter === "not-completed" && req.completed) return false;
+    const isCompleted = req.completed || req.is_exempted;
+    if (filter === "completed" && !isCompleted) return false;
+    if (filter === "not-completed" && isCompleted) return false;
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -242,44 +270,56 @@ export default function FolderScreen() {
     setShowFileTypeModal(true);
   };
 
-  // Validate selected file (NMAT percentile extraction vs ML Image Blur check)
+  // Validate selected file (Real AI check: Quality + Document Classification & Requirement Matching + NMAT)
   const validateAndUploadFile = async (reqId: string | null, fileInfo: FileInfo, isImage: boolean) => {
     const currentReq = requirements.find(r => r.id === reqId);
     const reqName = currentReq?.name || '';
+    const isNmat = isNmatRequirement(reqName);
 
-    if (isNmatRequirement(reqName)) {
-      // Validate NMAT percentile using OpenAI API (EXPO_OPENAI_API_KEY)
-      setCheckingNmat(true);
-      const extraction = await extractNmatPercentileFromImage(fileInfo.uri, EXPO_OPENAI_API_KEY);
-      setCheckingNmat(false);
+    setVerifyingDocument(true);
+    const validation = await validateDocumentWithOpenAI(fileInfo.uri, reqName, EXPO_OPENAI_API_KEY);
+    setVerifyingDocument(false);
 
+    // 1. Check Document Matching (Classification Check)
+    if (!validation.is_matching_requirement) {
+      setMismatchData({
+        targetRequirement: reqName,
+        detectedTitle: validation.detected_title,
+        mismatchReason: validation.mismatch_reason || validation.reason,
+      });
+      setShowMismatchModal(true);
+      return;
+    }
+
+    // 2. Check Blurriness / Image Quality
+    if (validation.is_blurry || validation.blurScore > 40) {
+      setBlurPercentage(validation.blurScore);
+      setSharpPercentage(validation.sharpScore);
+      setShowBlurErrorModal(true);
+      return;
+    }
+
+    // 3. Check NMAT score if NMAT document
+    if (isNmat || validation.is_nmat_document) {
       setNmatResultData({
-        success: extraction.success,
-        found: extraction.found,
-        percentileRank: extraction.percentileRank,
-        reason: extraction.reason,
+        success: true,
+        found: validation.percentile_rank !== null && validation.percentile_rank !== undefined,
+        percentileRank: validation.percentile_rank ?? null,
+        reason: validation.reason,
         pendingUpload: { reqId, fileInfo },
       });
       setShowNmatModal(true);
+      return;
+    }
+
+    // 4. Document is valid and matches requirement!
+    if (isImage) {
+      setBlurPercentage(validation.blurScore);
+      setSharpPercentage(validation.sharpScore);
+      setPendingImageUpload({ reqId, fileInfo });
+      setShowQualityModal(true);
     } else {
-      // Non-NMAT requirements: use ML image classifier blur check for images
-      if (isImage) {
-        setCheckingBlur(true);
-        const { isBlurry, blurScore, sharpScore } = await checkImageBlur(fileInfo);
-        setCheckingBlur(false);
-
-        setBlurPercentage(blurScore);
-        setSharpPercentage(sharpScore);
-        setPendingImageUpload({ reqId, fileInfo });
-
-        if (isBlurry || blurScore > 40) {
-          setShowBlurErrorModal(true);
-        } else {
-          setShowQualityModal(true);
-        }
-      } else {
-        await handleFileUpload(reqId, fileInfo);
-      }
+      await handleFileUpload(reqId, fileInfo);
     }
   };
 
@@ -750,6 +790,7 @@ export default function FolderScreen() {
       <ProgressModal visible={downloadingFile !== null} title="Downloading File" subtitle={downloadingFile || ""} />
       <ProgressModal visible={checkingBlur} title="Analyzing Image" subtitle="Checking image quality..." />
       <ProgressModal visible={checkingNmat} title="Analyzing NMAT Result" subtitle="Reading NMAT Percentile Rank..." />
+      <ProgressModal visible={verifyingDocument} title="Verifying Document" subtitle="AI is scanning and matching requirement..." />
 
       <ImageViewModal
         visible={viewingImage !== null}
@@ -784,6 +825,17 @@ export default function FolderScreen() {
           const newScale = currentScale === 1 ? 2 : 1;
           setCurrentScale(newScale);
           Animated.spring(imageScale, { toValue: newScale, useNativeDriver: true }).start();
+        }}
+      />
+
+      <DocumentMismatchModal
+        visible={showMismatchModal}
+        targetRequirement={mismatchData.targetRequirement}
+        detectedTitle={mismatchData.detectedTitle}
+        mismatchReason={mismatchData.mismatchReason}
+        onClose={() => {
+          setShowMismatchModal(false);
+          setPendingImageUpload(null);
         }}
       />
 

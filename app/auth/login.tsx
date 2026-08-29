@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import axios from "axios";
 import { useRouter } from "expo-router";
 import { LogIn } from "lucide-react-native";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Keyboard,
@@ -98,9 +98,9 @@ const LoginScreen = () => {
             setLoginState(prev => ({ ...prev, requiresPolicyAcceptance: true, loading: false, showLoginLoading: false }));
             router.push({ pathname: "/auth/policy-acceptance", params: { student_id: loginData.student_id, user_data: JSON.stringify(result.user) } });
           } else {
-            const userData = { ...result.user, avatar: result.user.avatar || "https://ardms.eduisync.io/swu-head.png", joinDate: result.user.joinDate || "Member since 2023", policy_accepted: 1 };
+            const userData = { ...result.user, avatar: result.user.avatar || "https://swu-som.com/swu-head.png", joinDate: result.user.joinDate || "Member since 2023", policy_accepted: 1 };
             await login(userData);
-            Toast.show({ type: "success", text1: "Login Successful 🎉", text2: `Welcome ${result.user.first_name}` });
+            Toast.show({ type: "success", text1: "Login Successful ", text2: `Welcome ${result.user.first_name}` });
             setLoginState(prev => ({ ...prev, loading: false, showLoginLoading: false }));
             router.replace("/home");
           }
@@ -128,7 +128,7 @@ const LoginScreen = () => {
         <View className="flex-1 justify-center px-4 py-6">
           <View className="bg-white opacity-90 p-8 rounded-2xl shadow-lg border border-gray-100 w-full mx-auto max-w-md">
             <LoginHeader logoStyle={logoStyle} textStyle={textStyle} />
-            
+
             <LoginInputs
               loginData={loginData}
               setLoginData={setLoginData}

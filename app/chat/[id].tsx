@@ -61,6 +61,7 @@ export default function ChatScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [unsendingMessage, setUnsendingMessage] = useState<string | null>(null);
@@ -265,11 +266,47 @@ export default function ChatScreen() {
       await messageService.markAsRead(user.id, actualUserId);
   };
 
+  const handleReplyMessage = (msg: Message) => {
+    setReplyingTo(msg);
+    if (editingMessage) {
+      setEditingMessage(null);
+      setEditText("");
+    }
+  };
+
+  const handleScrollToMessage = (messageId: string) => {
+    setHighlightedMessageId(messageId);
+    const index = messages.findIndex((m) => String(m.id) === String(messageId));
+    if (index !== -1 && flatListRef.current) {
+      try {
+        flatListRef.current.scrollToIndex({ index, animated: true });
+      } catch (e) {}
+    }
+    setTimeout(() => isMountedRef.current && setHighlightedMessageId(null), 3000);
+  };
+
   const sendMessage = async () => {
     if (!inputText.trim() || !user?.id) return;
     const text = inputText;
+    const currentReply = replyingTo;
     const tempId = `temp_${Date.now()}`;
     setInputText("");
+    setReplyingTo(null);
+
+    const replyToSenderName = currentReply
+      ? currentReply.senderId === user.id
+        ? "You"
+        : (name as string) || "User"
+      : null;
+
+    const replyToText = currentReply
+      ? currentReply.type === "image"
+        ? "📷 Photo"
+        : currentReply.type === "file"
+          ? `📎 ${currentReply.fileName || "Document"}`
+          : currentReply.text
+      : null;
+
     setMessages((prev) => [
       {
         id: tempId,
@@ -281,6 +318,10 @@ export default function ChatScreen() {
         isSeen: false,
         isCurrentUser: true,
         isEdited: false,
+        replyToId: currentReply ? currentReply.id : null,
+        replyToText,
+        replyToSenderName,
+        replyToType: currentReply ? currentReply.type : null,
       },
       ...prev,
     ]);
@@ -296,11 +337,16 @@ export default function ChatScreen() {
         type: "text",
         isSeen: false,
         recipientOnline: userOnlineStatus,
+        replyToId: currentReply ? currentReply.id : null,
+        replyToText,
+        replyToSenderName,
+        replyToType: currentReply ? currentReply.type : null,
       });
       setMessages((prev) => prev.map((m) => (m.id === tempId ? res : m)));
     } catch (e) {
       Alert.alert("Error", "Failed to send message");
       setInputText(text);
+      setReplyingTo(currentReply);
     }
   };
 
@@ -567,6 +613,8 @@ export default function ChatScreen() {
           setEditText(item.text);
         }}
         onUnsendMessage={unsendMessage}
+        onReplyMessage={handleReplyMessage}
+        onScrollToMessage={handleScrollToMessage}
         onImagePress={(url) => {
           const urls = messages
             .filter((m) => m.type === "image" && m.fileUrl)
@@ -595,6 +643,10 @@ export default function ChatScreen() {
         editText={editText}
         setEditText={setEditText}
         editingMessage={editingMessage}
+        replyingTo={replyingTo}
+        onCancelReply={() => setReplyingTo(null)}
+        partnerName={name as string}
+        currentUserId={user?.id}
         showAttachments={showAttachments}
         setShowAttachments={setShowAttachments}
         onSendMessage={sendMessage}

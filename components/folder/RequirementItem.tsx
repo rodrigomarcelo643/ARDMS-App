@@ -43,19 +43,40 @@ export const RequirementItem: React.FC<RequirementItemProps> = ({
   onBrowseFiles,
   onShowFeedback,
 }) => {
+  const isExempted = req.is_exempted === true;
+  const isCompleted = req.completed || isExempted || req.uploadedFiles.length >= req.file_count;
+
   return (
     <View
       style={{ backgroundColor: cardColor }}
-      className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-4 mb-4"
+      className={`rounded-lg p-4 mb-4 border-2 ${
+        isExempted
+          ? "border-emerald-500 bg-emerald-50/40"
+          : isCompleted
+            ? "border-green-500 bg-white"
+            : "border-dashed border-gray-300 bg-white"
+      }`}
     >
       {/* Requirement Info */}
       <View className="flex-row justify-between items-start mb-4">
-        <View className="flex-1">
+        <View className="flex-1 mr-2">
           <Text className="font-bold text-gray-800 text-lg" style={{ color: textColor }}>
             {req.name}
           </Text>
+
+          {/* Exemption badge */}
+          {isExempted && (
+            <View className="mt-1 flex-row items-center">
+              <View className="bg-emerald-100 px-2.5 py-0.5 rounded-full flex-row items-center border border-emerald-300">
+                <Check size={11} color="#065f46" strokeWidth={3} />
+                <Text className="text-emerald-800 text-[11px] font-semibold ml-1">
+                  {req.exemption_label || 'Exempted (Regular & NMAT ≥ 40%)'}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
-        {req.completed ? (
+        {isCompleted ? (
           <View className="w-6 h-6 bg-green-500 rounded-full items-center justify-center">
             <Check size={14} color="white" strokeWidth={3} />
           </View>
@@ -68,12 +89,14 @@ export const RequirementItem: React.FC<RequirementItemProps> = ({
       <View>
         <View className="flex-row justify-between items-center mb-4">
           <Text className="font-medium text-gray-800 text-sm" style={{ color: textColor }}>
-            Required: {req.file_count} files
+            {isExempted ? "Exempted (No upload required)" : `Required: ${req.file_count} files`}
           </Text>
           <Text
-            className={`text-sm ${req.uploadedFiles.length >= req.file_count ? "text-green-500" : "text-red-400"}`}
+            className={`text-sm font-semibold ${
+              isCompleted ? "text-green-600" : "text-red-400"
+            }`}
           >
-            {req.uploadedFiles.length}/{req.file_count}
+            {isExempted ? "Completed" : `${req.uploadedFiles.length}/${req.file_count}`}
           </Text>
         </View>
 
@@ -196,6 +219,18 @@ export const RequirementItem: React.FC<RequirementItemProps> = ({
               </View>
             </View>
           ))
+        ) : isExempted ? (
+          <View className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 items-center justify-center">
+            <View className="w-10 h-10 bg-emerald-100 rounded-full items-center justify-center mb-2 border border-emerald-300">
+              <Check size={20} color="#059669" strokeWidth={3} />
+            </View>
+            <Text className="text-emerald-900 font-bold text-sm text-center">
+              Requirement Exempted
+            </Text>
+            <Text className="text-emerald-700 text-xs text-center mt-1">
+              You are a Regular student with NMAT score ≥ 40%. No file upload is needed.
+            </Text>
+          </View>
         ) : (
           <View style={{ backgroundColor: cardColor }} className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 items-center justify-center">
             <Image source={require("../../assets/images/no_file.png")} className="w-20 h-20"/>
@@ -205,7 +240,7 @@ export const RequirementItem: React.FC<RequirementItemProps> = ({
           </View>
         )}
 
-        {req.uploadedFiles.length < req.file_count && (
+        {!isExempted && req.uploadedFiles.length < req.file_count && (
           <View className="items-end mt-2">
             <TouchableOpacity
               className="bg-[#be2e2e] border border-gray-300 rounded-lg shadow-md py-2 px-4 flex-row items-center justify-center w-32"

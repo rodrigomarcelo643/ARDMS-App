@@ -345,46 +345,46 @@ export const NmatResultModal: React.FC<NmatResultModalProps> = ({
 
           {/* Title & Status Badge */}
           <Text className="text-xl font-bold text-gray-800 text-center mb-1">
-            {isPassed ? "NMAT Verification Passed" : isFailed ? "NMAT Requirement Not Met" : "Extraction Failed"}
+            {isPassed ? "NMAT Verification Passed" : isFailed ? "NMAT Score Below 40%" : "Extraction Failed"}
           </Text>
           <View className="flex-row justify-center mb-4">
-            <View className={`px-3 py-1 rounded-full ${isPassed ? "bg-green-100" : "bg-red-100"}`}>
-              <Text className={`text-xs font-bold ${isPassed ? "text-green-800" : "text-red-800"}`}>
-                {isPassed ? "✓ ACCEPTED (≥ 40%)" : isFailed ? "✕ REJECTED (< 40%)" : "✕ UNREADABLE DOCUMENT"}
+            <View className={`px-3 py-1 rounded-full ${isPassed ? "bg-green-100" : isFailed ? "bg-amber-100" : "bg-red-100"}`}>
+              <Text className={`text-xs font-bold ${isPassed ? "text-green-800" : isFailed ? "text-amber-800" : "text-red-800"}`}>
+                {isPassed ? "✓ ACCEPTED (≥ 40%)" : isFailed ? "⚠ SCORE < 40% (WAIVER REQUIRED)" : "✕ UNREADABLE DOCUMENT"}
               </Text>
             </View>
           </View>
 
           {/* Percentile Rank Display Card */}
           {!isUnreadable && percentileRank !== null && (
-            <View className={`rounded-lg p-4 mb-4 ${isPassed ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+            <View className={`rounded-lg p-4 mb-4 ${isPassed ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"}`}>
               <Text className="text-xs font-medium text-gray-600 text-center mb-1">EXTRACTED PERCENTILE RANK</Text>
-              <Text className={`text-4xl font-extrabold text-center mb-2 ${isPassed ? "text-green-600" : "text-red-600"}`}>
+              <Text className={`text-4xl font-extrabold text-center mb-2 ${isPassed ? "text-green-600" : "text-amber-600"}`}>
                 {percentileRank}%
               </Text>
 
               {/* Score Bar */}
               <View className="w-full bg-gray-200 rounded-full h-3 mb-2 relative overflow-hidden">
                 <View
-                  className={isPassed ? "bg-green-500 h-3 rounded-full" : "bg-red-500 h-3 rounded-full"}
+                  className={isPassed ? "bg-green-500 h-3 rounded-full" : "bg-amber-500 h-3 rounded-full"}
                   style={{ width: `${Math.min(100, Math.max(0, percentileRank))}%` }}
                 />
               </View>
               <View className="flex-row justify-between">
                 <Text className="text-[10px] text-gray-500">0%</Text>
-                <Text className="text-[10px] font-bold text-gray-700">Required: 40%</Text>
+                <Text className="text-[10px] font-bold text-gray-700">Passing: 40%</Text>
                 <Text className="text-[10px] text-gray-500">100%</Text>
               </View>
             </View>
           )}
 
           {/* Description / Reason Box */}
-          <View className={`rounded-lg p-3 mb-5 ${isPassed ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
-            <Text className={`text-xs text-center leading-4 font-medium ${isPassed ? "text-green-900" : "text-red-900"}`}>
+          <View className={`rounded-lg p-3 mb-5 ${isPassed ? "bg-green-50 border border-green-200" : isFailed ? "bg-amber-50 border border-amber-200" : "bg-red-50 border border-red-200"}`}>
+            <Text className={`text-xs text-center leading-4 font-medium ${isPassed ? "text-green-900" : isFailed ? "text-amber-900" : "text-red-900"}`}>
               {isPassed
                 ? `Your NMAT percentile rank of ${percentileRank}% meets the required 40% passing rate threshold.`
                 : isFailed
-                ? `Your extracted NMAT percentile rank of ${percentileRank}% is below the required 40% passing threshold.`
+                ? `Your extracted NMAT percentile rank of ${percentileRank}% is below 40%. You may upload this document, but you must also submit the signed Undertaking & Waiver form.`
                 : reason || "Unable to extract NMAT percentile rank from document. Please upload a clear copy."}
             </Text>
           </View>
@@ -404,6 +404,20 @@ export const NmatResultModal: React.FC<NmatResultModalProps> = ({
                 <Text className="text-white text-center font-bold">Upload Document</Text>
               </TouchableOpacity>
             </View>
+          ) : isFailed ? (
+            <View className="flex-row gap-3">
+              <TouchableOpacity className="flex-1 bg-gray-200 py-3 rounded-lg" onPress={onClose}>
+                <Text className="text-gray-800 text-center font-medium">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 bg-amber-600 py-3 rounded-lg"
+                onPress={() => {
+                  if (onConfirmUpload) onConfirmUpload();
+                }}
+              >
+                <Text className="text-white text-center font-bold">Proceed with Waiver</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <TouchableOpacity className="bg-[#be2e2e] py-3 rounded-lg" onPress={onClose}>
               <Text className="text-white text-center font-medium">Try Another Document</Text>
@@ -414,4 +428,58 @@ export const NmatResultModal: React.FC<NmatResultModalProps> = ({
     </Modal>
   );
 };
+
+// --- Document Mismatch Modal ---
+export const DocumentMismatchModal: React.FC<{
+  visible: boolean;
+  targetRequirement: string;
+  detectedTitle?: string;
+  mismatchReason?: string;
+  onClose: () => void;
+}> = ({ visible, targetRequirement, detectedTitle, mismatchReason, onClose }) => (
+  <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+    <View className="flex-1 bg-black/50 justify-center items-center p-4">
+      <View className="bg-white rounded-xl p-6 w-full max-w-md">
+        {/* Top Icon Badge */}
+        <View className="items-center mb-3">
+          <View className="bg-red-100 p-4 rounded-full">
+            <AlertTriangle size={36} color="#dc2626" />
+          </View>
+        </View>
+
+        {/* Title */}
+        <Text className="text-xl font-bold text-gray-800 text-center mb-1">
+          Requirement Mismatch
+        </Text>
+        <Text className="text-gray-500 text-xs text-center mb-4">
+          AI Document Verification Failed
+        </Text>
+
+        {/* Comparison Card */}
+        <View className="bg-gray-50 border border-gray-200 rounded-lg p-3.5 mb-3">
+          <View className="mb-2">
+            <Text className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Required Slot:</Text>
+            <Text className="text-sm font-semibold text-gray-800">{targetRequirement}</Text>
+          </View>
+          <View className="pt-2 border-t border-gray-200">
+            <Text className="text-[11px] font-bold text-red-600 uppercase tracking-wider">Detected Document:</Text>
+            <Text className="text-sm font-bold text-red-700">{detectedTitle || 'Unknown / Unrecognized Document'}</Text>
+          </View>
+        </View>
+
+        {/* Reason Box */}
+        <View className="bg-red-50 border border-red-200 rounded-lg p-3 mb-5">
+          <Text className="text-red-900 text-xs text-center leading-4">
+            {mismatchReason || `The uploaded document does not match the required document slot "${targetRequirement}". Please upload the correct document.`}
+          </Text>
+        </View>
+
+        {/* Action Button */}
+        <TouchableOpacity className="bg-[#be2e2e] py-3.5 rounded-lg" onPress={onClose}>
+          <Text className="text-white text-center font-bold">Upload Correct Document</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
+);
 

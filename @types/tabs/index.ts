@@ -117,6 +117,11 @@ export interface Requirement {
   completed: boolean;
   file_count: number;
   uploadedFiles: UploadedFile[];
+  is_waiver?: boolean;
+  is_exempted?: boolean;
+  is_optional?: boolean;
+  exemption_label?: string | null;
+  compliance_status?: string;
 }
 
 export interface FileInfo {

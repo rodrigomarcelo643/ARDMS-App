@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
-import { MoreVertical, Edit3, Trash2 } from 'lucide-react-native';
+import { MoreVertical, Edit3, Trash2, CornerUpLeft } from 'lucide-react-native';
 import { Message } from '@/@types/screens/messages';
 import { FileIcon, LinkText } from './ChatUIElements';
 
@@ -20,6 +20,8 @@ interface ChatMessageItemProps {
   onSelectMessage: (id: string | null) => void;
   onEditMessage: (item: Message) => void;
   onUnsendMessage: (id: string) => void;
+  onReplyMessage: (item: Message) => void;
+  onScrollToMessage?: (id: string) => void;
   onImagePress: (url: string) => void;
   getInitials: (name: string) => string;
   canEditMessage: (timestamp: string) => boolean;
@@ -42,18 +44,21 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   onSelectMessage,
   onEditMessage,
   onUnsendMessage,
+  onReplyMessage,
+  onScrollToMessage,
   onImagePress,
   getInitials,
   canEditMessage,
   isLastMessage,
 }) => (
   <View className="mb-4">
-    <View className={`flex-row ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
+    <View className={`flex-row items-start ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
+      {/* Action Menu (For my messages on left of bubble) */}
       {isMyMessage && item.text !== 'Message removed' && (
         <View className="relative">
           <TouchableOpacity
             onPress={() => onSelectMessage(selectedMessage === item.id ? null : item.id)}
-            className="mr-2 mt-2 p-1"
+            className="mr-1 mt-2 p-1"
           >
             <MoreVertical size={16} color={mutedColor} />
           </TouchableOpacity>
@@ -66,7 +71,20 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 onPress={() => onSelectMessage(null)}
                 activeOpacity={1}
               />
-              <View className="absolute top-8 right-0 rounded-lg shadow-lg border py-1" style={{ backgroundColor: cardColor, borderColor: mutedColor + '30', minWidth: 100, zIndex: 1000 }}>
+              <View className="absolute top-8 right-0 rounded-lg shadow-lg border py-1" style={{ backgroundColor: cardColor, borderColor: mutedColor + '30', minWidth: 110, zIndex: 1000 }}>
+                {/* Reply */}
+                <TouchableOpacity
+                  onPress={() => {
+                    onSelectMessage(null);
+                    onReplyMessage(item);
+                  }}
+                  className="flex-row items-center px-3 py-2"
+                >
+                  <CornerUpLeft size={14} color={textColor} />
+                  <Text className="ml-2 text-sm" style={{ color: textColor }}>Reply</Text>
+                </TouchableOpacity>
+
+                {/* Edit */}
                 {item.type === 'text' && item.timestamp && canEditMessage(new Date(item.timestamp).toISOString()) && (
                   <TouchableOpacity
                     onPress={() => onEditMessage(item)}
@@ -81,6 +99,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                     <Text className="ml-2 text-sm" style={{ color: textColor }}>Edit</Text>
                   </TouchableOpacity>
                 )}
+
+                {/* Unsend */}
                 <TouchableOpacity
                   onPress={() => onUnsendMessage(item.id)}
                   className="flex-row items-center px-3 py-2"
@@ -119,6 +139,23 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         )}
         
         <View className={`rounded-2xl px-4 py-3 ${isMyMessage ? 'bg-blue-500 rounded-br-sm' : 'bg-gray-200 rounded-bl-sm'} ${highlightedMessageId === item.id ? 'border-2 border-yellow-400' : ''}`} style={highlightedMessageId === item.id ? { backgroundColor: isMyMessage ? '#3B82F6' : '#FEF3C7' } : {}}>
+          
+          {/* Quoted Reply Preview Inside Bubble */}
+          {item.replyToText && (
+            <TouchableOpacity
+              onPress={() => item.replyToId && onScrollToMessage && onScrollToMessage(item.replyToId)}
+              activeOpacity={0.8}
+              className={`mb-2 p-2 rounded border-l-4 ${isMyMessage ? 'bg-blue-600/70 border-white' : 'bg-gray-300/80 border-[#af1616]'}`}
+            >
+              <Text className={`text-[11px] font-bold ${isMyMessage ? 'text-blue-100' : 'text-[#af1616]'}`}>
+                {item.replyToSenderName || 'Reply'}
+              </Text>
+              <Text className={`text-xs ${isMyMessage ? 'text-white/90' : 'text-gray-700'}`} numberOfLines={2}>
+                {item.replyToType === 'image' ? '📷 Photo' : item.replyToType === 'file' ? '📎 Document' : item.replyToText}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {item.type === 'image' && item.fileUrl && (
             <TouchableOpacity onPress={() => onImagePress(item.fileUrl!)}>
               <Image
@@ -159,6 +196,42 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
           </View>
         </View>
       </View>
+
+      {/* Action Menu (For received messages on right of bubble) */}
+      {!isMyMessage && item.text !== 'Message removed' && (
+        <View className="relative">
+          <TouchableOpacity
+            onPress={() => onSelectMessage(selectedMessage === item.id ? null : item.id)}
+            className="ml-1 mt-2 p-1"
+          >
+            <MoreVertical size={16} color={mutedColor} />
+          </TouchableOpacity>
+          
+          {selectedMessage === item.id && (
+            <>
+              <TouchableOpacity 
+                className="absolute inset-0 w-full h-full"
+                style={{ zIndex: 999 }}
+                onPress={() => onSelectMessage(null)}
+                activeOpacity={1}
+              />
+              <View className="absolute top-8 left-0 rounded-lg shadow-lg border py-1" style={{ backgroundColor: cardColor, borderColor: mutedColor + '30', minWidth: 100, zIndex: 1000 }}>
+                {/* Reply */}
+                <TouchableOpacity
+                  onPress={() => {
+                    onSelectMessage(null);
+                    onReplyMessage(item);
+                  }}
+                  className="flex-row items-center px-3 py-2"
+                >
+                  <CornerUpLeft size={14} color={textColor} />
+                  <Text className="ml-2 text-sm" style={{ color: textColor }}>Reply</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
+      )}
     </View>
   
     {isMyMessage && isLastMessage && (

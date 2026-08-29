@@ -30,6 +30,8 @@ interface ChatMessageListProps {
   onSelectMessage: (id: string | null) => void;
   onEditMessage: (item: Message) => void;
   onUnsendMessage: (id: string) => void;
+  onReplyMessage: (item: Message) => void;
+  onScrollToMessage?: (id: string) => void;
   onImagePress: (url: string) => void;
   getInitials: (name: string) => string;
   canEditMessage: (timestamp: string) => boolean;
@@ -60,6 +62,8 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   onSelectMessage,
   onEditMessage,
   onUnsendMessage,
+  onReplyMessage,
+  onScrollToMessage,
   onImagePress,
   getInitials,
   canEditMessage,
@@ -133,6 +137,8 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
                 onSelectMessage={onSelectMessage}
                 onEditMessage={onEditMessage}
                 onUnsendMessage={onUnsendMessage}
+                onReplyMessage={onReplyMessage}
+                onScrollToMessage={onScrollToMessage}
                 onImagePress={onImagePress}
                 getInitials={getInitials}
                 canEditMessage={canEditMessage}

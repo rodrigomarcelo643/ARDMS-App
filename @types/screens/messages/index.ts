@@ -28,6 +28,10 @@ export interface Message {
   isSeen: boolean;
   isCurrentUser?: boolean;
   isEdited?: boolean;
+  replyToId?: string | null;
+  replyToText?: string | null;
+  replyToSenderName?: string | null;
+  replyToType?: "text" | "image" | "file" | null;
 }
 
 // Service response types
