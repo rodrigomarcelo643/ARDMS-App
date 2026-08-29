@@ -19,6 +19,28 @@
 
 ---
 
+## 📚 Technical Documentation Suite
+
+Comprehensive system documentation is located in the [`docs/`](./docs) directory:
+
+| Module | Document | Scope & Contents |
+| :--- | :--- | :--- |
+| **`000`** | [**System Overview**](./docs/000_IndexAndSystemOverview.md) | Master index, architecture summary, tech stack, and environment matrix |
+| **`001`** | [**Architecture & Structure**](./docs/001_ArchitectureAndProjectStructure.md) | Expo Router layout, component hierarchy, and modular design |
+| **`002`** | [**Authentication & Security**](./docs/002_AuthenticationAndSecurity.md) | AuthContext, login lifecycle, 2FA OTP, policy acceptance, and session encryption |
+| **`003`** | [**Real-Time Messaging**](./docs/003_RealTimeMessagingAndChatSystem.md) | Peer chat, quote replies, threading, attachments, and unsend actions |
+| **`004`** | [**Document Upload & AI**](./docs/004_DocumentUploadAndAiValidation.md) | 3-tier validation (blur checking, OpenAI Vision slot matching, NMAT extraction) |
+| **`005`** | [**Evaluations & Prospectus**](./docs/005_StudentEvaluationAndProspectus.md) | Evaluation lifecycle, prospectus grade verification, and evaluator signatures |
+| **`006`** | [**AI Assistant (MedGPT)**](./docs/006_AiAssistantIntegration.md) | Assistant architecture, instant responses, suggested queries, and live intents |
+| **`007`** | [**State & Offline Caching**](./docs/007_StateManagementAndOfflineCaching.md) | AsyncStorage persistence, message caching, and offline detection |
+| **`008`** | [**Push Notifications**](./docs/008_PushNotificationsAndBackgroundServices.md) | Push token registration, notification channels, and background tasks |
+| **`009`** | [**UI/UX Design System**](./docs/009_UiUxDesignSystemAndTheming.md) | NativeWind Tailwind CSS v3 tokens, light/dark themes, and modals |
+| **`010`** | [**Testing & Troubleshooting**](./docs/010_TestingQualityAssuranceAndTroubleshooting.md) | Quality assurance, test coverage, and troubleshooting matrix |
+| **`011`** | [**Build & Deployment**](./docs/011_BuildPipelinesAndDeployment.md) | Expo EAS build pipelines, Android APK/AAB builds, and release checklists |
+| **`ZZ`** | [**Legacy Archives**](./docs/ZZ_Archives/README.md) | Historical design notes and legacy reference documentation |
+
+---
+
 ### 🧠 ML-Powered Image Quality Validation
 
 MedSIS features an intelligent validation pipeline that utilizes a dedicated Machine Learning microservice to guarantee the legibility of academic records.
