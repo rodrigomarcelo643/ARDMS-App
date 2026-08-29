@@ -307,6 +307,63 @@ export default function AIAssistant() {
     }
   };
 
+  const handleClearChat = () => {
+    if (messages.length <= 1) return;
+    Alert.alert(
+      "New Chat",
+      "Are you sure you want to clear the conversation and start a new session?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Start New Chat",
+          style: "destructive",
+          onPress: () => {
+            stopGeneration();
+            setMessages([
+              {
+                id: Date.now().toString(),
+                text: `Hi ${user?.first_name || 'Student'}! I'm your MedSIS AI Assistant. How can I help you with your academic evaluator, secretary office, semester requirements, grades, or calendar today?`,
+                sender: "bot",
+                timestamp: new Date(),
+              },
+            ]);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSelectSuggestion = async (text: string) => {
+    if (isLoading) return;
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text,
+      sender: "user",
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+    try {
+      const response = await getAIResponse(text, "general");
+      if (!response.text) return;
+      const botMessageId = (Date.now() + 1).toString();
+      const botMessage: Message = {
+        id: botMessageId,
+        text: "",
+        sender: "bot",
+        timestamp: new Date(),
+        isTyping: true,
+        context: response.context,
+      };
+      setMessages((prev) => [...prev, botMessage]);
+      await simulateTyping(response.text, botMessageId);
+    } catch (error) {
+      Alert.alert("Error", "Failed to get response");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getUserAvatar = () => {
     if (user?.avatar_data) return user.avatar_data;
     const avatar = user?.avatar_url || user?.avatar;
@@ -334,6 +391,7 @@ export default function AIAssistant() {
         textColor={textColor}
         mutedColor={mutedColor}
         borderColor={borderColor}
+        onClearChat={handleClearChat}
       />
 
       <KeyboardAvoidingView
@@ -357,8 +415,10 @@ export default function AIAssistant() {
               quickLinks={quickLinks}
               textColor={textColor}
               cardColor={cardColor}
+              mutedColor={mutedColor}
               isLoading={isLoading}
               onPressLink={handleQuickLink}
+              onSelectSuggestion={handleSelectSuggestion}
             />
           }
           ListFooterComponent={
